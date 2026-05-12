@@ -1,0 +1,52 @@
+# Optional Stop hook — plays a Windows toast notification on session end.
+# Delete this file or customize freely. Wired up in settings.json under
+# "hooks.Stop". To disable, remove the Stop block from settings.json.
+
+param()
+
+$ErrorActionPreference = 'SilentlyContinue'
+
+$stdinInput = [Console]::In.ReadToEnd()
+
+$sessionShort = ''
+try {
+    $sessionJson = $stdinInput | ConvertFrom-Json
+    $sessionId = $sessionJson.session_id
+    if ($sessionId) {
+        $sessionShort = $sessionId.Substring(0, [Math]::Min(8, $sessionId.Length))
+    }
+} catch {}
+
+$cwd = (Get-Location).Path
+$cwdShort = Split-Path -Leaf $cwd
+
+$title = "Claude Code ready - $cwdShort"
+if ($sessionShort) {
+    $body = "Session $sessionShort ended. CWD: $cwd"
+} else {
+    $body = "CWD: $cwd"
+}
+
+$titleEsc = [System.Security.SecurityElement]::Escape($title)
+$bodyEsc  = [System.Security.SecurityElement]::Escape($body)
+
+[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
+[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null
+
+$xmlString = @"
+<toast>
+  <visual>
+    <binding template="ToastGeneric">
+      <text>$titleEsc</text>
+      <text>$bodyEsc</text>
+    </binding>
+  </visual>
+  <audio src="ms-winsoundevent:Notification.Default"/>
+</toast>
+"@
+
+$xml = New-Object Windows.Data.Xml.Dom.XmlDocument
+$xml.LoadXml($xmlString)
+
+$toast = New-Object Windows.UI.Notifications.ToastNotification $xml
+[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('Claude Code').Show($toast)

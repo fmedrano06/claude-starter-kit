@@ -1,0 +1,92 @@
+{
+  "version": "1.0",
+  "questions": [
+    {
+      "id": "user_name",
+      "type": "text",
+      "prompt": "What name should Claude use when addressing you?",
+      "default": ""
+    },
+    {
+      "id": "user_role",
+      "type": "text",
+      "prompt": "What is your role? (e.g. 'indie hacker', 'backend engineer', 'data scientist', 'student')",
+      "default": ""
+    },
+    {
+      "id": "primary_language",
+      "type": "text",
+      "prompt": "What are your primary programming languages? (e.g. 'TypeScript + Python', 'Go', 'Rust + C++')",
+      "default": ""
+    },
+    {
+      "id": "communication_language",
+      "type": "text",
+      "prompt": "What language should Claude reply to you in? (English is the default; type any human language to override)",
+      "default": "English"
+    },
+    {
+      "id": "skills_to_install",
+      "type": "multi-select",
+      "prompt": "Which skills should be installed into ~/.claude/skills/? (Select any combination; all are optional.)",
+      "default": [],
+      "options": [
+        {
+          "id": "gh-issues",
+          "label": "gh-issues",
+          "description": "Fetch GitHub issues, spawn sub-agents to implement fixes, open PRs, and monitor review comments."
+        },
+        {
+          "id": "project-prime",
+          "label": "project-prime",
+          "description": "Mandatory 10-phase execution framework with binary exit gates for new projects, niches, or channels."
+        },
+        {
+          "id": "graphify",
+          "label": "graphify",
+          "description": "Turn any input (code, docs, papers, images) into a clustered knowledge graph with HTML + JSON + audit report."
+        },
+        {
+          "id": "impeccable",
+          "label": "impeccable",
+          "description": "Build distinctive, production-grade frontend interfaces that avoid generic AI aesthetics."
+        },
+        {
+          "id": "ui-ux-pro-max",
+          "label": "ui-ux-pro-max",
+          "description": "UI/UX design intelligence: styles, palettes, font pairings, charts, and stack-aware component generation."
+        }
+      ]
+    },
+    {
+      "id": "mcps_to_enable",
+      "type": "multi-select",
+      "prompt": "Which MCP servers should be enabled in ~/.claude/settings.json?",
+      "default": [],
+      "_todo": "catalogs-eng may expand this list to match the final mcps.md catalog; team-lead reconciles at integration.",
+      "options": [
+        {
+          "id": "context7",
+          "label": "context7",
+          "description": "Fetches up-to-date documentation for libraries, frameworks, SDKs, and CLI tools."
+        },
+        {
+          "id": "sequential-thinking",
+          "label": "sequential-thinking",
+          "description": "Structured step-by-step reasoning helper for multi-step problems."
+        },
+        {
+          "id": "github",
+          "label": "github",
+          "description": "Read and write access to GitHub issues, PRs, and repository content."
+        }
+      ]
+    },
+    {
+      "id": "enable_stop_hook",
+      "type": "boolean",
+      "prompt": "Enable the Stop hook that plays a sound / shows a desktop notification when Claude finishes a turn?",
+      "default": true
+    }
+  ]
+}

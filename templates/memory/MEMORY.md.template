@@ -1,0 +1,15 @@
+<!--
+Placeholders filled by the installer:
+  {{TODAY}} — install date (YYYY-MM-DD)
+-->
+
+# Memory index
+
+Claude reads this file at the start of every session in this project.
+Keep it short — point to memory files, don't paste content here.
+
+## Memories
+
+(empty — Claude will add entries here as you work)
+
+Last updated: {{TODAY}}

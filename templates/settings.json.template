@@ -1,0 +1,83 @@
+{
+  "_comment": "claude-starter-kit v0.1.0 settings template. Drop into ~/.claude/settings.json (or merge with your existing one). Edit anything that doesn't fit. The hooks and statusLine entries assume Windows + bash-on-Windows respectively — adapt for your OS.",
+
+  "skillListingBudgetFraction": 0.03,
+  "effortLevel": "high",
+  "autoUpdatesChannel": "latest",
+  "theme": "dark-daltonized",
+  "alwaysThinkingEnabled": false,
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true,
+  "skipDangerousModePermissionPrompt": true,
+
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true,
+    "cli-anything@cli-anything": true,
+    "andrej-karpathy-skills@karpathy-skills": true,
+    "agent-skills@addy-agent-skills": true,
+    "claude-mem@thedotmack": true,
+    "playground@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": true,
+    "plugin-dev@claude-plugins-official": true
+  },
+
+  "extraKnownMarketplaces": {
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-code-plugins"
+      }
+    },
+    "superpowers-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "obra/superpowers-marketplace"
+      }
+    },
+    "cli-anything": {
+      "source": {
+        "source": "github",
+        "repo": "HKUDS/CLI-Anything"
+      }
+    },
+    "karpathy-skills": {
+      "source": {
+        "source": "github",
+        "repo": "forrestchang/andrej-karpathy-skills"
+      }
+    },
+    "addy-agent-skills": {
+      "source": {
+        "source": "github",
+        "repo": "addyosmani/agent-skills"
+      }
+    },
+    "thedotmack": {
+      "source": {
+        "source": "github",
+        "repo": "thedotmack/claude-mem"
+      }
+    }
+  },
+
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"~/.claude/hooks/notify-stop.ps1\"",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ]
+  },
+
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline-command.sh"
+  }
+}

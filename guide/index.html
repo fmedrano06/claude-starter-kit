@@ -1,0 +1,1440 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Claude Starter Kit — Field guide</title>
+  <meta name="description" content="Tour of what just got installed and how to use it day to day.">
+  <style>
+    /* ---------- Tokens ----------------------------------------------- */
+    :root {
+      /* Type */
+      --font-display: ui-serif, "Iowan Old Style", "Apple Garamond", Georgia, "Times New Roman", serif;
+      --font-body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+
+      /* Spacing — 4pt scale */
+      --space-2: 0.125rem;
+      --space-4: 0.25rem;
+      --space-8: 0.5rem;
+      --space-12: 0.75rem;
+      --space-16: 1rem;
+      --space-24: 1.5rem;
+      --space-32: 2rem;
+      --space-48: 3rem;
+      --space-64: 4rem;
+      --space-96: 6rem;
+      --space-128: 8rem;
+
+      /* Radius */
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 18px;
+
+      /* Motion */
+      --ease-out: cubic-bezier(.2,.7,.2,1);
+      --dur-fast: 120ms;
+      --dur-med: 280ms;
+    }
+
+    /* Dark theme — warm ink, paper-cream accent */
+    :root[data-theme="dark"] {
+      --bg: oklch(0.16 0.012 80);
+      --bg-soft: oklch(0.20 0.013 80);
+      --bg-card: oklch(0.22 0.013 80);
+      --bg-code: oklch(0.13 0.010 80);
+      --border: oklch(0.30 0.014 80);
+      --border-strong: oklch(0.40 0.018 80);
+      --ink: oklch(0.94 0.012 80);
+      --ink-soft: oklch(0.78 0.012 80);
+      --ink-muted: oklch(0.62 0.010 80);
+      --accent: oklch(0.86 0.135 88);     /* warm parchment yellow */
+      --accent-ink: oklch(0.20 0.05 80);
+      --link: oklch(0.86 0.135 88);
+      --selection: oklch(0.40 0.10 88 / 0.55);
+      --shadow-lg: 0 30px 60px -30px oklch(0 0 0 / 0.55);
+    }
+
+    /* Light theme — newsprint */
+    :root[data-theme="light"] {
+      --bg: oklch(0.985 0.005 85);
+      --bg-soft: oklch(0.965 0.006 85);
+      --bg-card: oklch(0.99 0.004 85);
+      --bg-code: oklch(0.95 0.006 85);
+      --border: oklch(0.86 0.010 85);
+      --border-strong: oklch(0.70 0.014 85);
+      --ink: oklch(0.20 0.012 80);
+      --ink-soft: oklch(0.38 0.013 80);
+      --ink-muted: oklch(0.52 0.012 80);
+      --accent: oklch(0.55 0.16 38);      /* burnt sienna */
+      --accent-ink: oklch(0.99 0.005 85);
+      --link: oklch(0.45 0.14 38);
+      --selection: oklch(0.65 0.16 38 / 0.35);
+      --shadow-lg: 0 30px 60px -30px oklch(0.30 0.05 80 / 0.25);
+    }
+
+    /* ---------- Reset ------------------------------------------------- */
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 88px; }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+    body {
+      margin: 0;
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+      font-size: clamp(15px, 0.95vw + 12px, 17px);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    ::selection { background: var(--selection); }
+
+    /* ---------- Header ------------------------------------------------ */
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(12px);
+      background: color-mix(in oklch, var(--bg) 82%, transparent);
+      border-bottom: 1px solid var(--border);
+    }
+    .topbar-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: var(--space-16);
+      max-width: 1280px; margin: 0 auto;
+      padding: var(--space-12) var(--space-24);
+    }
+    .brand {
+      display: flex; align-items: center; gap: var(--space-12);
+      font-family: var(--font-display);
+      font-size: 1.15rem; font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .brand-mark {
+      width: 28px; height: 28px;
+      display: inline-grid; place-items: center;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--accent);
+      background: var(--bg-soft);
+    }
+    .brand small {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .topbar-actions { display: flex; align-items: center; gap: var(--space-8); }
+    .icon-btn {
+      appearance: none;
+      background: transparent; color: var(--ink-soft);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      width: 36px; height: 36px;
+      display: inline-grid; place-items: center;
+      cursor: pointer;
+      transition: color var(--dur-fast) var(--ease-out),
+                  border-color var(--dur-fast) var(--ease-out),
+                  background var(--dur-fast) var(--ease-out);
+    }
+    .icon-btn:hover { color: var(--ink); border-color: var(--border-strong); }
+    .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .icon-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+    :root[data-theme="dark"] .icon-btn .sun { display: block; }
+    :root[data-theme="dark"] .icon-btn .moon { display: none; }
+    :root[data-theme="light"] .icon-btn .sun { display: none; }
+    :root[data-theme="light"] .icon-btn .moon { display: block; }
+
+    /* ---------- Layout ----------------------------------------------- */
+    .shell {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 var(--space-24);
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-48);
+    }
+    @media (min-width: 1024px) {
+      .shell {
+        grid-template-columns: 240px minmax(0, 1fr);
+        gap: var(--space-64);
+        padding: 0 var(--space-32);
+      }
+    }
+    main { min-width: 0; }
+
+    /* ---------- TOC --------------------------------------------------- */
+    .toc {
+      position: sticky; top: 80px;
+      align-self: start;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+      padding: var(--space-24) 0;
+    }
+    .toc h2 {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--ink-muted);
+      margin: 0 0 var(--space-16);
+    }
+    .toc ol {
+      list-style: none; margin: 0; padding: 0;
+      display: flex; flex-direction: column; gap: var(--space-2);
+    }
+    .toc a {
+      display: block;
+      padding: var(--space-8) var(--space-12);
+      color: var(--ink-soft);
+      text-decoration: none;
+      font-size: 14px;
+      border-radius: var(--radius-sm);
+      transition: color var(--dur-fast) var(--ease-out),
+                  background var(--dur-fast) var(--ease-out);
+    }
+    .toc a:hover { color: var(--ink); background: var(--bg-soft); }
+    .toc a.is-active {
+      color: var(--accent);
+      background: color-mix(in oklch, var(--accent) 8%, transparent);
+    }
+    .toc a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .toc .num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-muted);
+      margin-right: var(--space-8);
+    }
+
+    .toc-drawer-toggle {
+      display: none;
+      width: 100%;
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: var(--space-12) var(--space-16);
+      color: var(--ink);
+      font: inherit;
+      cursor: pointer;
+      text-align: left;
+      margin-bottom: var(--space-24);
+    }
+    @media (max-width: 1023px) {
+      .toc-drawer-toggle { display: flex; align-items: center; justify-content: space-between; gap: var(--space-12); }
+      .toc { position: static; max-height: none; padding: 0; }
+      .toc:not(.is-open) ol { display: none; }
+      .toc.is-open ol { margin-bottom: var(--space-24); }
+    }
+
+    /* ---------- Hero -------------------------------------------------- */
+    .hero {
+      padding: clamp(var(--space-48), 7vw, var(--space-96)) 0 var(--space-48);
+      max-width: 64ch;
+    }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: var(--space-8);
+      font-family: var(--font-mono);
+      font-size: 11px; letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin: 0 0 var(--space-24);
+    }
+    .eyebrow::before {
+      content: ""; display: block; width: 18px; height: 1px;
+      background: var(--border-strong);
+    }
+    .hero h1 {
+      font-family: var(--font-display);
+      font-weight: 500;
+      font-size: clamp(2.4rem, 5.5vw, 4.4rem);
+      line-height: 1.02;
+      letter-spacing: -0.025em;
+      margin: 0 0 var(--space-24);
+      font-feature-settings: "ss01", "liga", "kern";
+    }
+    .hero h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+    .hero p.lede {
+      font-size: clamp(1.1rem, 1.4vw + 0.6rem, 1.35rem);
+      line-height: 1.5;
+      color: var(--ink-soft);
+      max-width: 56ch;
+      margin: 0 0 var(--space-32);
+    }
+    .cta-row { display: flex; flex-wrap: wrap; gap: var(--space-12); align-items: center; }
+    .btn {
+      appearance: none;
+      display: inline-flex; align-items: center; gap: var(--space-8);
+      padding: var(--space-12) var(--space-24);
+      border-radius: var(--radius-md);
+      font: 500 0.95rem/1 var(--font-body);
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform var(--dur-fast) var(--ease-out),
+                  background var(--dur-fast) var(--ease-out),
+                  color var(--dur-fast) var(--ease-out),
+                  border-color var(--dur-fast) var(--ease-out);
+      border: 1px solid transparent;
+    }
+    .btn-primary {
+      background: var(--accent); color: var(--accent-ink);
+    }
+    .btn-primary:hover { transform: translateY(-1px); }
+    .btn-primary:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+    .btn-ghost {
+      background: transparent; color: var(--ink); border-color: var(--border-strong);
+    }
+    .btn-ghost:hover { background: var(--bg-soft); }
+    .btn-ghost:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .btn .arrow { transition: transform var(--dur-fast) var(--ease-out); }
+    .btn:hover .arrow { transform: translateX(3px); }
+
+    .hero-meta {
+      margin-top: var(--space-48);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: var(--space-24);
+      padding-top: var(--space-32);
+      border-top: 1px solid var(--border);
+      max-width: 56ch;
+    }
+    .hero-meta dt {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin: 0 0 var(--space-4);
+    }
+    .hero-meta dd {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+    }
+
+    /* ---------- Sections --------------------------------------------- */
+    section.chapter {
+      padding-block: var(--space-64);
+      border-top: 1px solid var(--border);
+      scroll-margin-top: 88px;
+    }
+    section.chapter:first-of-type { border-top: none; }
+    .chapter-head {
+      display: flex; flex-direction: column; gap: var(--space-8);
+      margin-bottom: var(--space-48);
+      max-width: 64ch;
+    }
+    .chapter-head .num {
+      font-family: var(--font-mono);
+      font-size: 12px; letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+    }
+    .chapter-head h2 {
+      font-family: var(--font-display);
+      font-weight: 500;
+      font-size: clamp(1.8rem, 3.2vw, 2.6rem);
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin: 0;
+    }
+    .chapter-head p {
+      color: var(--ink-soft);
+      font-size: 1.05rem;
+      max-width: 60ch;
+      margin: var(--space-8) 0 0;
+    }
+    .chapter h3 {
+      font-family: var(--font-display);
+      font-weight: 500;
+      font-size: 1.45rem;
+      letter-spacing: -0.015em;
+      margin: var(--space-48) 0 var(--space-12);
+      max-width: 70ch;
+    }
+    .chapter h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      margin: var(--space-32) 0 var(--space-12);
+      max-width: 70ch;
+    }
+    .chapter p { max-width: 72ch; margin: 0 0 var(--space-16); color: var(--ink-soft); }
+    .chapter p strong { color: var(--ink); font-weight: 600; }
+    .chapter ul, .chapter ol { max-width: 70ch; padding-left: var(--space-24); color: var(--ink-soft); }
+    .chapter li { margin-bottom: var(--space-8); }
+    .chapter li::marker { color: var(--ink-muted); }
+    .chapter a { color: var(--link); text-underline-offset: 3px; }
+    .chapter a:hover { text-decoration-thickness: 2px; }
+
+    /* Inline mono */
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.88em;
+      background: var(--bg-code);
+      padding: 0.12em 0.4em;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      color: var(--ink);
+    }
+
+    /* Cards */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: var(--space-16);
+      max-width: 100%;
+    }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-24);
+      transition: border-color var(--dur-fast) var(--ease-out),
+                  transform var(--dur-fast) var(--ease-out);
+    }
+    .card:hover { border-color: var(--border-strong); }
+    .card .card-tag {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 0 0 var(--space-12);
+    }
+    .card h4 {
+      margin: 0 0 var(--space-8);
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 500;
+      letter-spacing: -0.015em;
+    }
+    .card p { margin: 0; color: var(--ink-soft); font-size: 0.95rem; }
+    .card details { margin-top: var(--space-16); }
+    .card summary {
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+      list-style: none;
+      display: inline-flex; align-items: center; gap: var(--space-4);
+    }
+    .card summary::-webkit-details-marker { display: none; }
+    .card summary::after { content: "+"; font-size: 14px; }
+    .card details[open] summary::after { content: "−"; }
+    .card details > div {
+      margin-top: var(--space-12);
+      padding-top: var(--space-12);
+      border-top: 1px solid var(--border);
+      color: var(--ink-soft);
+      font-size: 0.9rem;
+    }
+    .card details ul { padding-left: var(--space-16); margin: var(--space-8) 0 0; }
+
+    /* Code block */
+    .code-block {
+      position: relative;
+      margin: var(--space-16) 0 var(--space-24);
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      max-width: 100%;
+    }
+    .code-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: var(--space-8) var(--space-16);
+      background: color-mix(in oklch, var(--bg-soft) 60%, transparent);
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+    }
+    .code-head .code-lang { text-transform: uppercase; }
+    .copy-btn {
+      appearance: none;
+      background: transparent; color: var(--ink-muted);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: var(--space-4) var(--space-8);
+      font: 500 11px/1 var(--font-mono);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: color var(--dur-fast) var(--ease-out),
+                  border-color var(--dur-fast) var(--ease-out);
+    }
+    .copy-btn:hover { color: var(--ink); border-color: var(--border-strong); }
+    .copy-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .copy-btn[data-state="copied"] { color: var(--accent); border-color: var(--accent); }
+    .code-block pre {
+      margin: 0;
+      padding: var(--space-16);
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      line-height: 1.55;
+      color: var(--ink);
+      tab-size: 2;
+    }
+    .code-block pre code {
+      background: none;
+      padding: 0;
+      border: 0;
+      font-size: inherit;
+      color: inherit;
+      white-space: pre;
+    }
+    /* simple non-regex token cues via classes if needed */
+    .tok-c { color: var(--ink-muted); font-style: italic; }
+    .tok-k { color: var(--accent); }
+
+    /* Callout */
+    .callout {
+      margin: var(--space-24) 0;
+      padding: var(--space-16) var(--space-24);
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      max-width: 72ch;
+    }
+    .callout p { margin: 0; color: var(--ink); }
+    .callout-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: var(--space-4);
+      display: block;
+    }
+
+    /* Walkthrough */
+    .walkthrough {
+      margin: var(--space-24) 0 var(--space-32);
+      display: grid;
+      gap: var(--space-16);
+    }
+    .step {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: var(--space-16) var(--space-24);
+      padding: var(--space-24);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+    }
+    .step-num {
+      grid-row: 1 / span 2;
+      width: 40px; height: 40px;
+      display: grid; place-items: center;
+      border-radius: 50%;
+      background: var(--bg-soft);
+      border: 1px solid var(--border-strong);
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 1.1rem;
+      color: var(--accent);
+    }
+    .step h4 { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: 1.2rem; letter-spacing: -0.01em; }
+    .step .step-body { grid-column: 2; }
+    .step .step-body p { margin: 0 0 var(--space-12); }
+    .step .step-body p:last-child { margin-bottom: 0; }
+    .step .code-block { margin: var(--space-12) 0 0; }
+
+    /* Slash command table */
+    .cmd-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: var(--space-16) 0 var(--space-24);
+      font-size: 0.95rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .cmd-table th, .cmd-table td {
+      padding: var(--space-12) var(--space-16);
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--border);
+    }
+    .cmd-table tr:last-child td { border-bottom: 0; }
+    .cmd-table th {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      font-weight: 500;
+      background: var(--bg-soft);
+    }
+    .cmd-table td:first-child { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); white-space: nowrap; }
+    .cmd-table td { color: var(--ink-soft); }
+
+    /* Troubleshooting */
+    .trouble-list { display: grid; gap: var(--space-8); margin: var(--space-16) 0 var(--space-24); }
+    .trouble {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .trouble summary {
+      cursor: pointer;
+      padding: var(--space-16) var(--space-24);
+      list-style: none;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: var(--space-16);
+      font-weight: 500;
+      color: var(--ink);
+    }
+    .trouble summary::-webkit-details-marker { display: none; }
+    .trouble summary::after { content: "+"; font-family: var(--font-mono); color: var(--ink-muted); }
+    .trouble[open] summary::after { content: "−"; }
+    .trouble summary:hover { background: var(--bg-soft); }
+    .trouble summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+    .trouble > div {
+      padding: 0 var(--space-24) var(--space-24);
+      border-top: 1px solid var(--border);
+      color: var(--ink-soft);
+    }
+    .trouble > div p:first-child { margin-top: var(--space-16); }
+
+    /* Footer */
+    footer {
+      padding: var(--space-48) 0 var(--space-96);
+      border-top: 1px solid var(--border);
+      margin-top: var(--space-48);
+      color: var(--ink-muted);
+      font-size: 0.9rem;
+    }
+    footer .row { display: flex; flex-wrap: wrap; gap: var(--space-24); align-items: baseline; justify-content: space-between; }
+    footer a { color: var(--ink-soft); text-decoration: none; border-bottom: 1px solid var(--border-strong); padding-bottom: 2px; }
+    footer a:hover { color: var(--ink); }
+
+    /* Resource grid */
+    .resources {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: var(--space-16);
+      margin: var(--space-24) 0;
+    }
+    .resource {
+      display: block;
+      padding: var(--space-24);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--ink);
+      text-decoration: none;
+      transition: border-color var(--dur-fast) var(--ease-out),
+                  transform var(--dur-fast) var(--ease-out);
+    }
+    .resource:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+    .resource:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .resource .tag {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin-bottom: var(--space-8);
+    }
+    .resource h4 { margin: 0 0 var(--space-4); font-family: var(--font-display); font-weight: 500; font-size: 1.1rem; letter-spacing: -0.01em; }
+    .resource p { margin: 0; font-size: 0.9rem; color: var(--ink-soft); max-width: none; }
+
+    /* Skip link */
+    .skip {
+      position: absolute; top: -100px; left: var(--space-16);
+      background: var(--accent); color: var(--accent-ink);
+      padding: var(--space-8) var(--space-16);
+      border-radius: var(--radius-sm);
+      z-index: 100;
+      transition: top var(--dur-fast) var(--ease-out);
+    }
+    .skip:focus { top: var(--space-12); }
+
+    /* Print */
+    @media print {
+      .topbar, .toc, .toc-drawer-toggle, .copy-btn, .cta-row, .icon-btn { display: none !important; }
+      .shell { display: block; max-width: 100%; padding: 0; }
+      body { background: #fff; color: #000; font-size: 11pt; }
+      section.chapter { page-break-inside: avoid; border-color: #ccc; padding-block: 1cm; }
+      .card, .step, .trouble, .code-block, .callout { break-inside: avoid; border-color: #ccc !important; background: #fafafa !important; }
+      a { color: #000; text-decoration: underline; }
+      pre { white-space: pre-wrap; }
+    }
+
+    /* Small details for hierarchy */
+    .figure-rule {
+      width: 36px; height: 1px;
+      background: var(--border-strong);
+      margin: var(--space-24) 0;
+    }
+  </style>
+</head>
+<body>
+  <a href="#main" class="skip">Skip to content</a>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="#top" class="brand">
+        <span class="brand-mark" aria-hidden="true">CC</span>
+        <span>Starter Kit <small>v0.1.0</small></span>
+      </a>
+      <div class="topbar-actions">
+        <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle color theme" title="Toggle theme">
+          <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>
+          <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A8 8 0 1 1 11.2 3a6.5 6.5 0 0 0 9.8 9.8z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <a id="top"></a>
+
+  <div class="shell">
+    <aside class="toc" aria-label="Table of contents" id="toc">
+      <button class="toc-drawer-toggle" type="button" aria-expanded="false" aria-controls="toc-list">
+        <span>On this page</span>
+        <span aria-hidden="true">⌄</span>
+      </button>
+      <h2>On this page</h2>
+      <ol id="toc-list">
+        <li><a href="#hero"><span class="num">00</span>Welcome</a></li>
+        <li><a href="#installed"><span class="num">01</span>What got installed</a></li>
+        <li><a href="#workflow"><span class="num">02</span>Daily workflow</a></li>
+        <li><a href="#customize"><span class="num">03</span>Customization</a></li>
+        <li><a href="#trouble"><span class="num">04</span>Troubleshooting</a></li>
+        <li><a href="#resources"><span class="num">05</span>Resources</a></li>
+      </ol>
+    </aside>
+
+    <main id="main">
+
+      <!-- HERO ------------------------------------------------------------ -->
+      <section class="hero chapter" id="hero" aria-labelledby="hero-h">
+        <p class="eyebrow">Field guide</p>
+        <h1 id="hero-h">A small kit for a <em>working</em> Claude.</h1>
+        <p class="lede">
+          The installer has finished. Your <code>~/.claude/</code> directory now
+          contains a tuned identity prompt, five skills, a curated plugin
+          shortlist, and an auto-memory that grows as you work. This page is
+          the manual — what is on disk, how to use it day to day, and where
+          to push back when something feels off.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#workflow">
+            Read the workflow
+            <span class="arrow" aria-hidden="true">→</span>
+          </a>
+          <a class="btn btn-ghost" href="#installed">What just got installed</a>
+        </div>
+
+        <dl class="hero-meta">
+          <div>
+            <dt>Bytes added</dt>
+            <dd>~180&nbsp;KB</dd>
+          </div>
+          <div>
+            <dt>Files written</dt>
+            <dd>5 + skills</dd>
+          </div>
+          <div>
+            <dt>External calls</dt>
+            <dd>None</dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- WHAT GOT INSTALLED --------------------------------------------- -->
+      <section class="chapter" id="installed" aria-labelledby="installed-h">
+        <div class="chapter-head">
+          <span class="num">Chapter 01</span>
+          <h2 id="installed-h">What just got installed</h2>
+          <p>
+            The kit is intentionally small. Four pieces, each readable in
+            under five minutes. Open the files yourself — they are plain
+            Markdown and JSON.
+          </p>
+        </div>
+
+        <div class="cards">
+          <article class="card">
+            <span class="card-tag">~/.claude/CLAUDE.md</span>
+            <h4>Identity &amp; standards</h4>
+            <p>
+              The global system prompt Claude reads on every session. It sets
+              the tone (terse, direct), the language you reply in, the
+              "never assume" rule, and the auto-memory protocol.
+            </p>
+            <details>
+              <summary>What's inside</summary>
+              <div>
+                <ul>
+                  <li>Identity block — who Claude is when talking to you.</li>
+                  <li>Universal coding principles (Karpathy guidelines).</li>
+                  <li>"What done means" — checklist for non-trivial work.</li>
+                  <li>Auto-memory section — how the assistant remembers across sessions.</li>
+                </ul>
+              </div>
+            </details>
+          </article>
+
+          <article class="card">
+            <span class="card-tag">~/.claude/skills/</span>
+            <h4>Five skills, hand-picked</h4>
+            <p>
+              Skills are reusable instructions that activate by keyword.
+              You got five: <code>gh-issues</code>, <code>graphify</code>,
+              <code>impeccable</code>, <code>project-prime</code>,
+              <code>ui-ux-pro-max</code>.
+            </p>
+            <details>
+              <summary>Inventory</summary>
+              <div>
+                <ul>
+                  <li><strong>gh-issues</strong> — fetch and triage GitHub issues, spawn fixes.</li>
+                  <li><strong>graphify</strong> — input → knowledge graph → HTML report.</li>
+                  <li><strong>impeccable</strong> — distinctive frontend code, no AI-slop aesthetics.</li>
+                  <li><strong>project-prime</strong> — 10-phase framework before starting anything new.</li>
+                  <li><strong>ui-ux-pro-max</strong> — UI/UX design intelligence with curated styles.</li>
+                </ul>
+              </div>
+            </details>
+          </article>
+
+          <article class="card">
+            <span class="card-tag">settings.json</span>
+            <h4>Plugins &amp; MCPs declared</h4>
+            <p>
+              The merged settings file enables nine plugins and any MCP
+              servers you opted into. Marketplaces are registered so
+              <code>/plugin install</code> resolves without manual setup.
+            </p>
+            <details>
+              <summary>Where to look</summary>
+              <div>
+                <p>See the <code>plugins.md</code> and <code>mcps.md</code>
+                catalogs at the repo root for the full list and verified
+                install commands.</p>
+              </div>
+            </details>
+          </article>
+
+          <article class="card">
+            <span class="card-tag">projects/&lt;slug&gt;/memory/</span>
+            <h4>Auto-memory seed</h4>
+            <p>
+              A starter <code>MEMORY.md</code> waits for the assistant to
+              fill it in. As you work, durable facts get written here and
+              loaded into the context of future sessions.
+            </p>
+            <details>
+              <summary>Lifecycle</summary>
+              <div>
+                <ul>
+                  <li>Read at session start.</li>
+                  <li>Written to when you say "remember X" or after non-obvious feedback.</li>
+                  <li>Pruned during <code>/close</code> handoffs.</li>
+                </ul>
+              </div>
+            </details>
+          </article>
+        </div>
+
+        <div class="callout">
+          <span class="callout-label">Backup</span>
+          <p>Your previous <code>~/.claude/</code> was copied to
+          <code>~/.claude/.backup-&lt;timestamp&gt;/</code> before the
+          install ran. If anything feels wrong, restore is a single
+          directory copy.</p>
+        </div>
+      </section>
+
+      <!-- WORKFLOW ------------------------------------------------------- -->
+      <section class="chapter" id="workflow" aria-labelledby="workflow-h">
+        <div class="chapter-head">
+          <span class="num">Chapter 02</span>
+          <h2 id="workflow-h">A day with Claude Code</h2>
+          <p>
+            This is the centerpiece of the guide. Read it in order the
+            first time. Skim it later. Everything that follows assumes
+            you ran <code>claude</code> in a project directory and you have
+            an active session.
+          </p>
+        </div>
+
+        <h3>Starting a session</h3>
+        <p>
+          Open a terminal in the project root and type:
+        </p>
+        <div class="code-block" data-lang="shell">
+          <div class="code-head"><span class="code-lang">terminal</span>
+            <button class="copy-btn" type="button" aria-label="Copy code">Copy</button>
+          </div>
+<pre><code>cd path/to/your/project
+claude</code></pre>
+        </div>
+        <p>
+          On the first message, Claude loads, in order: your global
+          <code>~/.claude/CLAUDE.md</code>, the project's <code>CLAUDE.md</code>
+          if it exists, and the auto-memory index for the current working
+          directory. That stack of files is the context it reasons from.
+        </p>
+
+        <h3>Plan mode vs. direct</h3>
+        <p>
+          Claude Code has two operating modes. Choose deliberately.
+        </p>
+        <ul>
+          <li><strong>Direct</strong> — Claude reads, edits, and runs tools immediately. Use for small, low-risk edits where you'd rather iterate than design.</li>
+          <li><strong>Plan</strong> — Claude proposes a plan and waits for approval before touching anything. Use when the change touches more than two files, introduces a dependency, or modifies infrastructure.</li>
+        </ul>
+        <p>
+          Trigger plan mode by asking for it: <em>"make a plan first, don't
+          edit yet."</em> Or use <code>/plan</code> from the
+          <code>feature-dev</code> plugin for the full guided workflow.
+        </p>
+
+        <h3>Slash commands you'll actually use</h3>
+        <table class="cmd-table">
+          <thead>
+            <tr><th>Command</th><th>What it does</th><th>When</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>/clear</td><td>Wipes the conversation context.</td><td>Switching to a different task within the same project.</td></tr>
+            <tr><td>/cost</td><td>Shows session token + dollar usage.</td><td>Mid-session, when output starts feeling expensive.</td></tr>
+            <tr><td>/resume</td><td>Resumes the prior conversation.</td><td>You closed the terminal by mistake.</td></tr>
+            <tr><td>/spec</td><td>Spec-driven development (agent-skills).</td><td>Starting a new feature with vague requirements.</td></tr>
+            <tr><td>/plan</td><td>Break work into ordered tasks.</td><td>You have a spec and want it sliced.</td></tr>
+            <tr><td>/build</td><td>Implement the next task with tests.</td><td>You have a plan and want to ship the next step.</td></tr>
+            <tr><td>/test</td><td>TDD workflow — failing test first.</td><td>Fixing a bug or adding logic.</td></tr>
+            <tr><td>/review</td><td>Five-axis code review.</td><td>Before opening a PR.</td></tr>
+            <tr><td>/ship</td><td>Pre-launch checklist.</td><td>Right before deploy.</td></tr>
+            <tr><td>/close</td><td>Write the session handoff, propose memory diff.</td><td>End of day. Always.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Three skills, three real situations</h3>
+
+        <div class="walkthrough">
+          <div class="step">
+            <div class="step-num" aria-hidden="true">i</div>
+            <h4>Implementing a feature</h4>
+            <div class="step-body">
+              <p>You have a feature request. You don't yet know the right shape.</p>
+              <p>Open Claude, paste the request, and say: <em>"use spec-driven development."</em>
+              The <code>agent-skills:spec</code> skill kicks in — it interviews
+              you, writes a structured spec, then asks for approval before
+              breaking it into tasks. From there, <code>/plan</code> →
+              <code>/build</code> → <code>/test</code> → <code>/review</code>
+              → <code>/ship</code>.</p>
+              <div class="code-block" data-lang="prompt">
+                <div class="code-head"><span class="code-lang">prompt</span>
+                  <button class="copy-btn" type="button" aria-label="Copy prompt">Copy</button>
+                </div>
+<pre><code>"Add CSV export to the orders page. Use spec-driven development —
+write the spec first, get my approval, then plan tasks."</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-num" aria-hidden="true">ii</div>
+            <h4>Debugging a failing test</h4>
+            <div class="step-body">
+              <p>A test is red and you don't know why. Don't ask "fix it" — ask for root cause.</p>
+              <p>The <code>agent-skills:debugging-and-error-recovery</code>
+              skill enforces the discipline: read the failure, form a
+              hypothesis, prove it with a probe, then write the fix. The
+              <em>Prove-It</em> pattern from
+              <code>agent-skills:test-driven-development</code> requires a
+              test that would have caught the bug before the fix lands.</p>
+              <div class="code-block" data-lang="prompt">
+                <div class="code-head"><span class="code-lang">prompt</span>
+                  <button class="copy-btn" type="button" aria-label="Copy prompt">Copy</button>
+                </div>
+<pre><code>"checkout_test.py::test_discount_applies is failing. Walk me
+through root cause. Don't change code until I confirm the
+hypothesis."</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-num" aria-hidden="true">iii</div>
+            <h4>Reviewing before merge</h4>
+            <div class="step-body">
+              <p>You have a branch ready. You want a second pair of eyes.</p>
+              <p>Run <code>/review</code> — the <code>agent-skills:review</code>
+              skill scores the diff on correctness, readability, architecture,
+              security, and performance. For UI-touching diffs, pair with
+              the <code>agent-skills:browser-testing-with-devtools</code>
+              skill, which drives Chrome DevTools MCP to verify the change
+              actually renders.</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>MCP servers in practice</h3>
+        <p>
+          Three MCP servers carry their weight on almost every project.
+          The others are situational.
+        </p>
+
+        <h4>context7 — fresh docs, not training data</h4>
+        <p>
+          When you ask Claude about a library, the answer in its training
+          set may be 18 months stale. The <code>context7</code> server
+          fetches the live docs and cites them.
+        </p>
+        <div class="code-block" data-lang="prompt">
+          <div class="code-head"><span class="code-lang">prompt</span>
+            <button class="copy-btn" type="button" aria-label="Copy prompt">Copy</button>
+          </div>
+<pre><code>"Show me how to configure middleware in Hono v4. Use context7
+to verify — I want the current API, not what you remember."</code></pre>
+        </div>
+
+        <h4>claude-mem — cross-session memory you can search</h4>
+        <p>
+          Auto-memory is the fast path. <code>claude-mem</code> is the deep
+          archive — every observation from every session, queryable.
+        </p>
+        <div class="code-block" data-lang="prompt">
+          <div class="code-head"><span class="code-lang">prompt</span>
+            <button class="copy-btn" type="button" aria-label="Copy prompt">Copy</button>
+          </div>
+<pre><code>"Did we already solve the duplicate-row bug in the importer?
+Search claude-mem before re-investigating."</code></pre>
+        </div>
+
+        <h4>sequential-thinking — long reasoning chains</h4>
+        <p>
+          For problems that need stepwise reasoning with revision (design
+          tradeoffs, multi-system debugging), this server gives Claude a
+          scratch pad it can branch and edit.
+        </p>
+        <div class="code-block" data-lang="prompt">
+          <div class="code-head"><span class="code-lang">prompt</span>
+            <button class="copy-btn" type="button" aria-label="Copy prompt">Copy</button>
+          </div>
+<pre><code>"We need to decide between SQS and Kafka for this pipeline.
+Use sequential-thinking to lay out 3 alternatives, then
+recommend one."</code></pre>
+        </div>
+
+        <h3>Hooks — automation without prompting</h3>
+        <p>
+          A hook is a shell command Claude Code runs on its own when an
+          event fires. The kit ships one optional example: the <strong>Stop
+          hook</strong>, which runs whenever Claude finishes responding to
+          you.
+        </p>
+        <p>
+          Why a Stop hook matters: Claude can leave the session idle for
+          minutes while it works. The hook can play a notification sound or
+          flash a toast, so you don't sit watching the terminal.
+        </p>
+        <div class="code-block" data-lang="json">
+          <div class="code-head"><span class="code-lang">settings.json</span>
+            <button class="copy-btn" type="button" aria-label="Copy code">Copy</button>
+          </div>
+<pre><code>{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          { "type": "command", "command": "pwsh ~/.claude/hooks/notify-stop.ps1" }
+        ]
+      }
+    ]
+  }
+}</code></pre>
+        </div>
+        <p>
+          Customize by editing the script. On macOS, swap the command for
+          <code>osascript -e 'display notification ...'</code>; on Linux,
+          <code>notify-send</code>. Anything that runs in your shell will
+          run here.
+        </p>
+
+        <h3>Auto-memory — how the assistant remembers</h3>
+        <p>
+          The kit configures a file-based memory at
+          <code>~/.claude/projects/&lt;cwd-slug&gt;/memory/</code>. Each
+          remembered fact is a Markdown file with frontmatter
+          (<code>name</code>, <code>description</code>, <code>type</code>).
+          A flat <code>MEMORY.md</code> indexes them — and is loaded into
+          every session automatically.
+        </p>
+        <p>To save a memory, just say so:</p>
+        <div class="code-block" data-lang="prompt">
+          <div class="code-head"><span class="code-lang">prompt</span>
+            <button class="copy-btn" type="button" aria-label="Copy prompt">Copy</button>
+          </div>
+<pre><code>"Remember: integration tests in this repo must hit a real
+Postgres, never a mock. We got burned by mock/prod drift
+last quarter."</code></pre>
+        </div>
+        <p>
+          To recall, just reference what you want. Claude will read the
+          relevant memory file before answering. Memory is verified
+          against current code on use, not blindly trusted — stale
+          memories get flagged or rewritten.
+        </p>
+        <p>
+          To forget something: <em>"forget the memory about mock testing
+          — that policy changed."</em>
+        </p>
+      </section>
+
+      <!-- CUSTOMIZE ------------------------------------------------------ -->
+      <section class="chapter" id="customize" aria-labelledby="customize-h">
+        <div class="chapter-head">
+          <span class="num">Chapter 03</span>
+          <h2 id="customize-h">Make it yours</h2>
+          <p>
+            The kit is opinionated, not precious. Every file is editable.
+            Three customization patterns cover 90% of what you'll want.
+          </p>
+        </div>
+
+        <h3>Edit the global CLAUDE.md</h3>
+        <p>
+          Open <code>~/.claude/CLAUDE.md</code> in any editor. Add a section
+          for your stack, your test runner, your forbidden patterns.
+          Anything you write here is read on every session, in every project.
+        </p>
+        <p>
+          A useful rule of thumb: <em>if you correct Claude on the same
+          thing twice, write it into the global file.</em>
+        </p>
+
+        <h3>Add your own skill</h3>
+        <p>
+          Skills are folders under <code>~/.claude/skills/</code>. Each
+          contains a <code>SKILL.md</code> with YAML frontmatter that
+          declares when it activates.
+        </p>
+        <div class="code-block" data-lang="markdown">
+          <div class="code-head"><span class="code-lang">SKILL.md</span>
+            <button class="copy-btn" type="button" aria-label="Copy template">Copy</button>
+          </div>
+<pre><code>---
+name: my-skill
+description: When you say "deploy to staging" or
+  "promote to prod", use this skill to run the release checklist.
+---
+
+# Release checklist
+
+1. Run `pnpm test` and confirm green.
+2. Bump version in `package.json`.
+3. ...
+</code></pre>
+        </div>
+        <p>
+          Save, restart Claude Code, and the skill becomes available.
+          See the <code>plugin-dev:skill-development</code> guide if you
+          want to ship it as a plugin.
+        </p>
+
+        <h3>Project-level CLAUDE.md</h3>
+        <p>
+          For repo-specific rules — naming conventions, the deploy command,
+          a known-flaky test to skip — drop a <code>CLAUDE.md</code> at the
+          project root. It's appended to the global file when Claude
+          starts a session in that directory.
+        </p>
+        <p>
+          The kit ships a <code>project-CLAUDE.md.template</code> in
+          <code>templates/</code> as a starting point.
+        </p>
+        <div class="callout">
+          <span class="callout-label">Precedence</span>
+          <p>If the project file contradicts the global, the project wins
+          — and Claude is told to surface the contradiction back to you in
+          the same response.</p>
+        </div>
+      </section>
+
+      <!-- TROUBLESHOOT --------------------------------------------------- -->
+      <section class="chapter" id="trouble" aria-labelledby="trouble-h">
+        <div class="chapter-head">
+          <span class="num">Chapter 04</span>
+          <h2 id="trouble-h">Troubleshooting</h2>
+          <p>
+            Five things that bite people during the first week. None of
+            them are fatal.
+          </p>
+        </div>
+
+        <div class="trouble-list">
+          <details class="trouble">
+            <summary>Skills don't activate after install</summary>
+            <div>
+              <p>Claude Code only scans <code>~/.claude/skills/</code> at
+              startup. If you installed while a session was running, the
+              new skills aren't loaded.</p>
+              <p><strong>Fix.</strong> Exit and restart the session.
+              <code>/clear</code> won't do it — you need a fresh process.</p>
+            </div>
+          </details>
+
+          <details class="trouble">
+            <summary>Permission prompts on every tool call</summary>
+            <div>
+              <p>Out of the box, Claude Code asks before every
+              non-trivial tool call. Useful at first, noisy after week one.</p>
+              <p><strong>Fix.</strong> Run the
+              <code>fewer-permission-prompts</code> skill — it scans your
+              transcripts and writes a prioritized allowlist into
+              <code>.claude/settings.json</code>. Or edit the
+              <code>permissions</code> block in
+              <code>~/.claude/settings.json</code> directly.</p>
+            </div>
+          </details>
+
+          <details class="trouble">
+            <summary>An MCP server is stuck on "connecting"</summary>
+            <div>
+              <p>Run <code>claude mcp logs &lt;server-name&gt;</code> to see
+              what the server printed on stderr. Common causes:</p>
+              <ul>
+                <li>Missing API key in your shell environment.</li>
+                <li>Network blocked (corporate VPN, DNS).</li>
+                <li>The underlying <code>npx</code> package failed to
+                fetch — try <code>npx -y &lt;package&gt;</code> manually.</li>
+              </ul>
+              <p>Remove and re-add with <code>claude mcp remove
+              &lt;server&gt;</code> then the original
+              <code>claude mcp add</code> command.</p>
+            </div>
+          </details>
+
+          <details class="trouble">
+            <summary>Auto-memory isn't saving</summary>
+            <div>
+              <p>The directory at
+              <code>~/.claude/projects/&lt;cwd-slug&gt;/memory/</code> must
+              exist before Claude can write to it. The installer creates it,
+              but if you started a session in a directory the installer
+              didn't see, it'll be missing.</p>
+              <p><strong>Fix.</strong> Ask Claude:
+              <em>"create my memory directory and seed MEMORY.md."</em> It
+              will run the right commands.</p>
+            </div>
+          </details>
+
+          <details class="trouble">
+            <summary>You want to roll the install back</summary>
+            <div>
+              <p>The installer saved your previous <code>~/.claude/</code>
+              to <code>~/.claude/.backup-&lt;timestamp&gt;/</code>. To
+              restore, copy the backup back over the live directory:</p>
+              <div class="code-block" data-lang="shell">
+                <div class="code-head"><span class="code-lang">terminal</span>
+                  <button class="copy-btn" type="button" aria-label="Copy restore command">Copy</button>
+                </div>
+<pre><code># macOS / Linux
+rm -rf ~/.claude/CLAUDE.md ~/.claude/skills
+cp -R ~/.claude/.backup-&lt;timestamp&gt;/* ~/.claude/
+
+# Windows PowerShell
+Remove-Item -Recurse "$env:USERPROFILE\.claude\CLAUDE.md","$env:USERPROFILE\.claude\skills"
+Copy-Item -Recurse "$env:USERPROFILE\.claude\.backup-&lt;timestamp&gt;\*" "$env:USERPROFILE\.claude\"</code></pre>
+              </div>
+              <p>Nothing else from the kit persists outside that directory,
+              so this is a complete uninstall.</p>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <!-- RESOURCES ------------------------------------------------------ -->
+      <section class="chapter" id="resources" aria-labelledby="resources-h">
+        <div class="chapter-head">
+          <span class="num">Chapter 05</span>
+          <h2 id="resources-h">Resources</h2>
+          <p>Where to go next.</p>
+        </div>
+
+        <div class="resources">
+          <a class="resource" href="https://docs.anthropic.com/en/docs/claude-code" rel="noopener">
+            <span class="tag">External</span>
+            <h4>Claude Code docs</h4>
+            <p>The canonical reference for commands, settings, hooks, and MCP.</p>
+          </a>
+          <a class="resource" href="../plugins.md">
+            <span class="tag">Repo file</span>
+            <h4>plugins.md</h4>
+            <p>The full plugin catalog with verified install commands.</p>
+          </a>
+          <a class="resource" href="../mcps.md">
+            <span class="tag">Repo file</span>
+            <h4>mcps.md</h4>
+            <p>MCP servers grouped by free, key-required, and niche.</p>
+          </a>
+          <a class="resource" href="../SETUP.md">
+            <span class="tag">Repo file</span>
+            <h4>SETUP.md</h4>
+            <p>The installer entry point — useful if you want to re-run or audit.</p>
+          </a>
+          <a class="resource" href="https://github.com/your-org/claude-starter-kit" rel="noopener">
+            <span class="tag">GitHub</span>
+            <h4>Source repository</h4>
+            <p>Issues, changelog, contributions.</p>
+          </a>
+          <a class="resource" href="https://github.com/your-org/claude-starter-kit/blob/main/CHANGELOG.md" rel="noopener">
+            <span class="tag">GitHub</span>
+            <h4>Changelog</h4>
+            <p>What changed in each release.</p>
+          </a>
+        </div>
+
+        <div class="figure-rule" aria-hidden="true"></div>
+
+        <p style="color: var(--ink-muted); font-size: 0.9rem; max-width: 60ch;">
+          This guide ships as a single HTML file. Open it offline, print
+          it, fork it — there are no external requests, no analytics, no
+          fonts loaded over the network. The whole document is the source.
+        </p>
+      </section>
+
+      <footer>
+        <div class="row">
+          <span>Claude Starter Kit · v0.1.0</span>
+          <span>Built single-file. Loads offline. <a href="javascript:window.print()">Print this page</a>.</span>
+        </div>
+      </footer>
+
+    </main>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    // ---- Theme toggle with localStorage --------------------------------
+    var THEME_KEY = 'csk-theme';
+    var root = document.documentElement;
+    var btn = document.getElementById('theme-toggle');
+
+    function applyTheme(t) {
+      root.setAttribute('data-theme', t);
+      btn.setAttribute('aria-label', t === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+      btn.setAttribute('aria-pressed', t === 'light' ? 'true' : 'false');
+    }
+    var stored = null;
+    try { stored = localStorage.getItem(THEME_KEY); } catch (e) {}
+    if (stored === 'light' || stored === 'dark') {
+      applyTheme(stored);
+    } else {
+      applyTheme('dark');
+    }
+    btn.addEventListener('click', function () {
+      var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
+    });
+
+    // ---- Copy buttons --------------------------------------------------
+    var blocks = document.querySelectorAll('.code-block');
+    blocks.forEach(function (block) {
+      var btn = block.querySelector('.copy-btn');
+      var pre = block.querySelector('pre');
+      if (!btn || !pre) return;
+      btn.addEventListener('click', function () {
+        var text = pre.innerText;
+        var done = function () {
+          btn.textContent = 'Copied';
+          btn.setAttribute('data-state', 'copied');
+          setTimeout(function () {
+            btn.textContent = 'Copy';
+            btn.removeAttribute('data-state');
+          }, 1600);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done).catch(fallback);
+        } else { fallback(); }
+        function fallback() {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.focus(); ta.select();
+          try { document.execCommand('copy'); done(); }
+          catch (e) { btn.textContent = 'Copy failed'; }
+          document.body.removeChild(ta);
+        }
+      });
+    });
+
+    // ---- TOC active section on scroll ---------------------------------
+    var links = Array.prototype.slice.call(document.querySelectorAll('#toc-list a'));
+    var sections = links
+      .map(function (a) {
+        var id = a.getAttribute('href').slice(1);
+        var el = document.getElementById(id);
+        return el ? { id: id, el: el, link: a } : null;
+      })
+      .filter(Boolean);
+
+    if ('IntersectionObserver' in window && sections.length) {
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          var match = sections.find(function (s) { return s.el === entry.target; });
+          if (!match) return;
+          if (entry.isIntersecting) {
+            links.forEach(function (l) { l.classList.remove('is-active'); });
+            match.link.classList.add('is-active');
+          }
+        });
+      }, { rootMargin: '-30% 0px -60% 0px', threshold: 0 });
+      sections.forEach(function (s) { observer.observe(s.el); });
+    }
+
+    // ---- TOC mobile drawer --------------------------------------------
+    var tocEl = document.getElementById('toc');
+    var toggle = tocEl ? tocEl.querySelector('.toc-drawer-toggle') : null;
+    if (toggle) {
+      toggle.addEventListener('click', function () {
+        var open = tocEl.classList.toggle('is-open');
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      // Close drawer on link click (mobile)
+      tocEl.querySelectorAll('#toc-list a').forEach(function (a) {
+        a.addEventListener('click', function () {
+          if (window.matchMedia('(max-width: 1023px)').matches) {
+            tocEl.classList.remove('is-open');
+            toggle.setAttribute('aria-expanded', 'false');
+          }
+        });
+      });
+    }
+  })();
+  </script>
+</body>
+</html>

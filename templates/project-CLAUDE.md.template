@@ -1,0 +1,27 @@
+<!--
+Placeholders filled by the installer (or edit by hand):
+  {{PROJECT_NAME}} — the project's name (e.g., "acme-api")
+
+Drop this file at the project root as CLAUDE.md. Claude reads it
+automatically when the cwd is inside this project.
+-->
+
+# {{PROJECT_NAME}} — Claude rules
+
+Project-specific instructions for Claude. These supplement (not override)
+`~/.claude/CLAUDE.md`. If a rule here contradicts the global file, this
+file wins — Claude should surface the contradiction so the global can be
+corrected.
+
+## Scope
+
+(what this project is, in 2-3 lines — stack, purpose, who uses it)
+
+## Conventions
+
+(language, naming, where things live, commit style, branch model)
+
+## Don't do
+
+(anti-patterns specific to this project — drive-by refactors, files not
+to touch, tools not to use, dependencies not to add)
