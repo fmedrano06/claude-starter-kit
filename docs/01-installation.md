@@ -20,7 +20,7 @@ This is the smoothest path if Claude Code is already on your machine.
 
 1. Clone or download this repo:
    ```bash
-   git clone https://github.com/fmedrano/claude-starter-kit.git
+   git clone https://github.com/fmedrano06/claude-starter-kit.git
    cd claude-starter-kit
    ```
 2. Open Claude Code in that directory:

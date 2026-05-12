@@ -35,4 +35,4 @@ Initial public release.
   extended documentation.
 - `README.md`, `LICENSE` (MIT), `.gitignore`.
 
-[0.1.0]: https://github.com/fmedrano/claude-starter-kit/releases/tag/v0.1.0
+[0.1.0]: https://github.com/fmedrano06/claude-starter-kit/releases/tag/v0.1.0
