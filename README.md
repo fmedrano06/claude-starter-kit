@@ -105,4 +105,4 @@ MIT. See [`LICENSE`](./LICENSE).
 
 ## Versioning
 
-See [`CHANGELOG.md`](./CHANGELOG.md). The current version is **0.1.0**.
+See [`CHANGELOG.md`](./CHANGELOG.md). The current version is **0.2.1**.

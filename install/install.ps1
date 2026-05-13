@@ -37,7 +37,7 @@ if (-not (Test-Path -LiteralPath $WizardJsonPath)) {
 }
 
 $ClaudeHome = Join-Path $env:USERPROFILE '.claude'
-$Marker     = '<!-- claude-starter-kit v0.1.0 -->'
+$Marker     = '<!-- claude-starter-kit v0.2.1 -->'
 
 Write-Host ''
 Write-Host '== Claude Starter Kit installer ==' -ForegroundColor Cyan
@@ -112,14 +112,19 @@ function Render-Template {
 
 function Merge-Settings {
     param([hashtable]$Existing, [hashtable]$Template, [array]$EnabledMcps)
+    # First pass: copy every top-level key EXCEPT mcpServers verbatim.
+    # mcpServers needs selective merge (only the enabled ones).
     foreach ($k in $Template.Keys) {
+        if ($k -eq 'mcpServers') { continue }
         if (-not $Existing.ContainsKey($k)) {
             $Existing[$k] = $Template[$k]
         }
     }
     if ($Template.ContainsKey('mcpServers')) {
         if (-not $Existing.ContainsKey('mcpServers')) { $Existing['mcpServers'] = @{} }
-        foreach ($name in $Template['mcpServers'].Keys) {
+        # Snapshot the keys to iterate safely (avoid mutating during enumeration).
+        $mcpKeys = @($Template['mcpServers'].Keys)
+        foreach ($name in $mcpKeys) {
             if ($EnabledMcps -contains $name) {
                 $Existing['mcpServers'][$name] = $Template['mcpServers'][$name]
             }
@@ -227,11 +232,15 @@ try {
     $templatePath = Join-Path $RepoRoot 'templates\CLAUDE.md.template'
     if (Test-Path -LiteralPath $templatePath) {
         $tpl = Get-Content -LiteralPath $templatePath -Raw -Encoding UTF8
+        $cwdSlug = Get-CwdSlug
+        $memoryDir = Join-Path $ClaudeHome ("projects\$cwdSlug\memory")
         $rendered = Render-Template -Content $tpl -Vars @{
             USER_NAME              = $answers.user_name
             USER_ROLE              = $answers.user_role
             PRIMARY_LANGUAGE       = $answers.primary_language
             COMMUNICATION_LANGUAGE = $answers.communication_language
+            TODAY                  = (Get-Date -Format 'yyyy-MM-dd')
+            MEMORY_DIR             = $memoryDir
         }
         if (-not $rendered.StartsWith($Marker)) {
             $rendered = "$Marker`n$rendered"
@@ -272,12 +281,21 @@ try {
     $settingsTplPath = Join-Path $RepoRoot 'templates\settings.json.template'
     $settingsDstPath = Join-Path $ClaudeHome 'settings.json'
     if (Test-Path -LiteralPath $settingsTplPath) {
-        $tplHash = Get-Content -LiteralPath $settingsTplPath -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable
+        $tplRaw = Get-Content -LiteralPath $settingsTplPath -Raw -Encoding UTF8
+        # Escape inner double quotes so the resulting JSON stays valid.
+        $stopHookCommand = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "~/.claude/hooks/notify-stop.ps1"'
+        $stopHookCommandJson = $stopHookCommand.Replace('"', '\"')
+        $tplRaw = $tplRaw.Replace('{{STOP_HOOK_COMMAND}}', $stopHookCommandJson)
+        $tplHash = $tplRaw | ConvertFrom-Json -AsHashtable
         $existingHash = @{}
         if (Test-Path -LiteralPath $settingsDstPath) {
             $existingHash = Get-Content -LiteralPath $settingsDstPath -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable
         }
         $merged = Merge-Settings -Existing $existingHash -Template $tplHash -EnabledMcps @($answers.mcps_to_enable)
+        # Drop Stop hook entirely if user opted out
+        if (-not [bool]$answers.enable_stop_hook -and $merged.ContainsKey('hooks')) {
+            if ($merged['hooks'].ContainsKey('Stop')) { $merged['hooks'].Remove('Stop') | Out-Null }
+        }
         $merged = Expand-ClaudeHomeTokens -Node $merged -ClaudeHomeAbs $ClaudeHome
         Write-Action 'WRITE' $settingsDstPath
         Invoke-FsAction {

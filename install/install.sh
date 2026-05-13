@@ -39,7 +39,7 @@ if [[ ! -f "$WIZARD_JSON" ]]; then
 fi
 
 CLAUDE_HOME="${HOME}/.claude"
-MARKER='<!-- claude-starter-kit v0.1.0 -->'
+MARKER='<!-- claude-starter-kit v0.2.1 -->'
 
 # ---------------------------------------------------------------------------
 # Dependencies
@@ -287,10 +287,16 @@ trap 'rc=$?; if [[ $rc -ne 0 && $DRY_RUN -eq 0 ]]; then restore_backup; fi' EXIT
 render_template() {
     local tpl="$1"
     local out="$tpl"
+    local today memory_dir slug
+    today="$(date +%Y-%m-%d)"
+    slug="$(cwd_slug)"
+    memory_dir="$CLAUDE_HOME/projects/$slug/memory"
     out="${out//\{\{USER_NAME\}\}/${ANSWERS[user_name]:-}}"
     out="${out//\{\{USER_ROLE\}\}/${ANSWERS[user_role]:-}}"
     out="${out//\{\{PRIMARY_LANGUAGE\}\}/${ANSWERS[primary_language]:-}}"
     out="${out//\{\{COMMUNICATION_LANGUAGE\}\}/${ANSWERS[communication_language]:-English}}"
+    out="${out//\{\{TODAY\}\}/$today}"
+    out="${out//\{\{MEMORY_DIR\}\}/$memory_dir}"
     printf '%s' "$out"
 }
 
@@ -341,13 +347,21 @@ DST_SETTINGS="$CLAUDE_HOME/settings.json"
 if [[ -f "$TPL_SETTINGS" ]]; then
     action WRITE "$DST_SETTINGS"
     if [[ $DRY_RUN -eq 0 ]]; then
+        # Resolve {{STOP_HOOK_COMMAND}} per OS into a sibling temp template.
+        # macOS and Linux both invoke notify-stop.sh via bash. Escape any
+        # inner double quotes for JSON safety (none expected here, but cheap).
+        STOP_HOOK_CMD='bash ~/.claude/hooks/notify-stop.sh'
+        STOP_HOOK_CMD_JSON="${STOP_HOOK_CMD//\"/\\\"}"
+        TPL_RESOLVED="$(mktemp -t csk-settings.XXXXXX)"
+        sed -e "s|{{STOP_HOOK_COMMAND}}|${STOP_HOOK_CMD_JSON}|g" "$TPL_SETTINGS" > "$TPL_RESOLVED"
+
         enabled_csv="$(IFS=,; echo "${MCPS[*]+"${MCPS[*]}"}")"
         if have jq; then
             existing="{}"
             [[ -f "$DST_SETTINGS" ]] && existing="$(cat "$DST_SETTINGS")"
             enabled_json=$(jq -Rcn --arg s "$enabled_csv" '$s | split(",") | map(select(length>0))')
             echo "$existing" | jq \
-                --slurpfile tpl <(cat "$TPL_SETTINGS") \
+                --slurpfile tpl <(cat "$TPL_RESOLVED") \
                 --argjson enabled "$enabled_json" '
                 . as $existing
                 | $tpl[0] as $tpl
@@ -357,7 +371,7 @@ if [[ -f "$TPL_SETTINGS" ]]; then
                 ' > "$DST_SETTINGS.tmp"
             mv "$DST_SETTINGS.tmp" "$DST_SETTINGS"
         else
-            python3 - "$DST_SETTINGS" "$TPL_SETTINGS" "$enabled_csv" <<'PY'
+            python3 - "$DST_SETTINGS" "$TPL_RESOLVED" "$enabled_csv" <<'PY'
 import json, os, sys
 dst, tpl_path, enabled_csv = sys.argv[1], sys.argv[2], sys.argv[3]
 enabled = [x for x in enabled_csv.split(',') if x]
@@ -391,6 +405,21 @@ PY
         else
             sed -i "s|~/\.claude/|${claude_home_escaped}/|g" "$DST_SETTINGS"
         fi
+        # Strip Stop hook block when user opted out.
+        if [[ "${ANSWERS[enable_stop_hook]:-true}" != "true" ]]; then
+            if have jq; then
+                jq 'del(.hooks.Stop)' "$DST_SETTINGS" > "$DST_SETTINGS.tmp" && mv "$DST_SETTINGS.tmp" "$DST_SETTINGS"
+            else
+                python3 - "$DST_SETTINGS" <<'PY'
+import json, sys
+p = sys.argv[1]
+with open(p, encoding="utf-8") as f: d = json.load(f)
+if isinstance(d.get("hooks"), dict): d["hooks"].pop("Stop", None)
+with open(p, "w", encoding="utf-8") as f: json.dump(d, f, indent=2)
+PY
+            fi
+        fi
+        rm -f "$TPL_RESOLVED"
     fi
     CREATED_PATHS+=("$DST_SETTINGS")
 else
@@ -418,13 +447,9 @@ fi
 # Step 9: stop hook
 # ---------------------------------------------------------------------------
 if [[ "${ANSWERS[enable_stop_hook]:-false}" == "true" ]]; then
-    case "$(uname -s)" in
-        Darwin) HOOK_TPL="$REPO_ROOT/templates/hooks/notify-stop.sh.macos.example" ;;
-        Linux)  HOOK_TPL="$REPO_ROOT/templates/hooks/notify-stop.sh.linux.example" ;;
-        *)      HOOK_TPL="" ;;
-    esac
+    HOOK_TPL="$REPO_ROOT/templates/hooks/notify-stop.sh.example"
     HOOK_DST="$CLAUDE_HOME/hooks/notify-stop.sh"
-    if [[ -n "$HOOK_TPL" && -f "$HOOK_TPL" ]]; then
+    if [[ -f "$HOOK_TPL" ]]; then
         action COPY "$HOOK_DST"
         if [[ $DRY_RUN -eq 0 ]]; then
             mkdir -p "$(dirname "$HOOK_DST")"
@@ -433,7 +458,7 @@ if [[ "${ANSWERS[enable_stop_hook]:-false}" == "true" ]]; then
         fi
         CREATED_PATHS+=("$HOOK_DST")
     else
-        echo "  SKIP    Stop hook (no template for $(uname -s) yet)"
+        echo "  SKIP    Stop hook (template not present at $HOOK_TPL)"
     fi
 fi
 

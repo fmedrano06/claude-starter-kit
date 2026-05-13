@@ -80,7 +80,7 @@ expected keys are: `user_name`, `user_role`, `primary_language`,
 Check whether `CLAUDE_HOME/CLAUDE.md` exists.
 
 - If it exists and begins with the marker comment
-  `<!-- claude-starter-kit v0.1.0 -->`, this kit is already installed.
+  `<!-- claude-starter-kit v0.2.1 -->`, this kit is already installed.
   Ask the user with `AskUserQuestion` whether to re-install. If they
   decline, stop here and report no changes made.
 - If it exists at all, ask the user permission to back up the current
@@ -102,7 +102,7 @@ the wizard answers:
 
 Write the rendered content to `CLAUDE_HOME/CLAUDE.md`. The rendered
 file must begin with the marker comment
-`<!-- claude-starter-kit v0.1.0 -->` so step 4 of a future re-install
+`<!-- claude-starter-kit v0.2.1 -->` so step 4 of a future re-install
 can detect it.
 
 ### Step 6 — Copy selected skills
@@ -146,12 +146,15 @@ If `enable_stop_hook` is true:
 
 - On Windows, copy `templates/hooks/notify-stop.ps1.example` to
   `CLAUDE_HOME/hooks/notify-stop.ps1`.
-- On macOS or Linux, adapt the equivalent shell hook (use
-  `osascript` for macOS, `notify-send` for Linux). If no equivalent
-  exists in the templates directory, skip this step and tell the user
-  that the Stop hook is Windows-only in this release.
+- On macOS or Linux, copy `templates/hooks/notify-stop.sh.example` to
+  `CLAUDE_HOME/hooks/notify-stop.sh` and `chmod +x` it. The script
+  detects the OS at runtime (`osascript` on macOS, `notify-send` on
+  Linux) so no per-OS variants are needed.
 
-If `enable_stop_hook` is false, skip this step entirely.
+The settings.json template uses a `{{STOP_HOOK_COMMAND}}` placeholder
+that the installer rewrites before merge: `powershell.exe ... .ps1`
+on Windows, `bash ... .sh` on Unix. If `enable_stop_hook` is false,
+drop the entire `hooks.Stop` block from the merged settings.
 
 ### Step 10 — Print summary
 

@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Optional Stop hook — shows a desktop notification on session end.
+# Delete this file or customize freely. Wired up in settings.json under
+# "hooks.Stop". To disable, remove the Stop block from settings.json.
+#
+# macOS:  uses osascript to post a banner via the Notification Center.
+# Linux:  uses notify-send (libnotify) which most desktop environments
+#         ship by default. If absent, install libnotify-bin or similar.
+
+set -e
+
+stdin_input="$(cat || true)"
+
+session_short=""
+if command -v python3 >/dev/null 2>&1; then
+    session_short="$(printf '%s' "$stdin_input" | python3 -c '
+import json, sys
+try:
+    sid = json.load(sys.stdin).get("session_id", "") or ""
+    print(sid[:8])
+except Exception:
+    pass
+' 2>/dev/null || true)"
+fi
+
+cwd="$(pwd)"
+cwd_short="$(basename "$cwd")"
+
+title="Claude Code ready — $cwd_short"
+if [[ -n "$session_short" ]]; then
+    body="Session $session_short ended. CWD: $cwd"
+else
+    body="CWD: $cwd"
+fi
+
+uname_s="$(uname -s)"
+case "$uname_s" in
+    Darwin)
+        # Escape double quotes for AppleScript.
+        title_esc="${title//\"/\\\"}"
+        body_esc="${body//\"/\\\"}"
+        /usr/bin/osascript -e "display notification \"$body_esc\" with title \"$title_esc\" sound name \"Glass\""
+        ;;
+    Linux)
+        if command -v notify-send >/dev/null 2>&1; then
+            notify-send "$title" "$body"
+        else
+            # Quiet fallback: write to stderr so a tail -F can surface it.
+            printf '[claude stop] %s — %s\n' "$title" "$body" >&2
+        fi
+        ;;
+    *)
+        # Unknown OS — quiet, never fail the hook.
+        :
+        ;;
+esac

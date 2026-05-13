@@ -559,27 +559,43 @@
     .code-block code { background: transparent; padding: 0; color: inherit; }
 
     /* =================================================================
-       Steps / walkthroughs
+       Situations — editorial entries (not numbered cards)
        ================================================================= */
-    .walkthrough { margin: var(--space-32) 0 0; }
-    .step {
+    .walkthrough {
+      margin: var(--space-24) 0 0;
+      border-top: 1px solid var(--rule);
+    }
+    .situation {
       display: grid;
-      grid-template-columns: 60px minmax(0, 1fr);
+      grid-template-columns: 72px minmax(0, 1fr);
       gap: var(--space-24);
-      padding: var(--space-32) 0;
-      border-top: 1px solid var(--rule-soft);
+      padding: var(--space-28) 0;
+      border-bottom: 1px solid var(--rule-soft);
     }
-    .step:first-child { border-top: 0; padding-top: var(--space-16); }
-    .step-roman {
+    .situation:last-child { border-bottom: 1px solid var(--rule); }
+    .situation-roman {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      padding-top: 0.55rem;
+    }
+    .situation h4 {
+      margin: 0 0 var(--space-8);
       font-family: var(--font-display);
+      font-size: 1.35rem;
       font-style: italic;
-      font-size: 2.4rem;
-      line-height: 0.9;
-      color: var(--accent);
-      letter-spacing: -0.02em;
+      font-weight: 400;
+      letter-spacing: -0.015em;
+      color: var(--ink);
     }
-    .step h4 { margin: 0 0 var(--space-12); font-size: 1.25rem; }
-    .step p { margin: 0 0 var(--space-12); }
+    .situation p { margin: 0 0 var(--space-12); }
+    .situation p:last-of-type { margin-bottom: 0; }
+    @media (max-width: 640px) {
+      .situation { grid-template-columns: 1fr; gap: var(--space-8); }
+      .situation-roman { padding-top: 0; }
+    }
 
     /* =================================================================
        Tables
@@ -758,7 +774,7 @@
         <span class="sep">·</span>
         Field guide
         <span class="sep">·</span>
-        v0.2.0
+        v0.2.1
       </span>
       <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle color theme" aria-pressed="false">
         <span class="t-dark">Light</span>
@@ -1068,10 +1084,10 @@ claude</code></pre>
             </tbody>
           </table>
 
-          <h3>Three skills, three real situations</h3>
+          <h3>Three situations you'll meet this week</h3>
           <div class="walkthrough">
-            <div class="step">
-              <div class="step-roman" aria-hidden="true">i.</div>
+            <div class="situation">
+              <div class="situation-roman" aria-hidden="true">i</div>
               <div>
                 <h4>Implementing a feature</h4>
                 <p>You have a feature request. You don't yet know the right shape.</p>
@@ -1094,8 +1110,8 @@ write the spec first, get my approval, then plan tasks."</code></pre>
               </div>
             </div>
 
-            <div class="step">
-              <div class="step-roman" aria-hidden="true">ii.</div>
+            <div class="situation">
+              <div class="situation-roman" aria-hidden="true">ii</div>
               <div>
                 <h4>Debugging a failing test</h4>
                 <p>A test is red and you don't know why. Don't ask "fix it" — ask for root cause.</p>
@@ -1118,8 +1134,8 @@ hypothesis."</code></pre>
               </div>
             </div>
 
-            <div class="step">
-              <div class="step-roman" aria-hidden="true">iii.</div>
+            <div class="situation">
+              <div class="situation-roman" aria-hidden="true">iii</div>
               <div>
                 <h4>Reviewing before merge</h4>
                 <p>You have a branch ready. You want a second pair of eyes.</p>
@@ -1347,6 +1363,12 @@ description: When you say "deploy to staging" or
         <p class="lede">None of them are fatal. Each has a one-line fix.</p>
 
         <div class="body">
+          <p>
+            What follows are five entries pulled from real install dry-runs.
+            Each is filed the way a print magazine files an erratum: the
+            symptom on the left, the correction below. None of them require
+            a reinstall.
+          </p>
           <div class="trouble-list">
             <details class="trouble">
               <summary>Skills don't activate after install.</summary>
@@ -1498,7 +1520,7 @@ Copy-Item -Recurse "$env:USERPROFILE\.claude\.backup-&lt;timestamp&gt;\*" "$env:
       <footer class="colofon-end">
         <p class="end-rule" aria-hidden="true">· · · · ·</p>
         <div class="row">
-          <span>Claude Starter Kit · v0.2.0 · Field guide</span>
+          <span>Claude Starter Kit · v0.2.1 · Field guide</span>
           <span>Built single-file · Loads offline · <a href="javascript:window.print()">Print this page</a></span>
         </div>
       </footer>

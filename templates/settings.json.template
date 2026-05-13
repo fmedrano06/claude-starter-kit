@@ -1,5 +1,5 @@
 {
-  "_comment": "claude-starter-kit v0.1.0 settings template. Drop into ~/.claude/settings.json (or merge with your existing one). Edit anything that doesn't fit. The hooks and statusLine entries assume Windows + bash-on-Windows respectively — adapt for your OS.",
+  "_comment": "claude-starter-kit v0.2.1 settings template. Drop into ~/.claude/settings.json (or merge with your existing one). Edit anything that doesn't fit. The installer rewrites the Stop hook command per OS.",
 
   "skillListingBudgetFraction": 0.03,
   "effortLevel": "high",
@@ -61,13 +61,36 @@
     }
   },
 
+  "mcpServers": {
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "${CONTEXT7_API_KEY}"
+      }
+    },
+    "sequential-thinking": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+    },
+    "github": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    }
+  },
+
   "hooks": {
     "Stop": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"~/.claude/hooks/notify-stop.ps1\"",
+            "command": "{{STOP_HOOK_COMMAND}}",
             "timeout": 10,
             "async": true
           }
