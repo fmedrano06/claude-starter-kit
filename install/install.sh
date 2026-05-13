@@ -460,5 +460,41 @@ if [[ $DRY_RUN -eq 0 && -f "$GUIDE" ]]; then
     fi
 fi
 
+# ---------------------------------------------------------------------------
+# Step 11: optional onboarding hand-off
+# ---------------------------------------------------------------------------
+if [[ "${ANSWERS[show_onboarding_after_install]:-false}" == "true" ]]; then
+    ONBOARDING_SRC="$REPO_ROOT/templates/first-session-prompt.md"
+    ONBOARDING_DST_DIR="$CLAUDE_HOME/onboarding"
+    ONBOARDING_DST="$ONBOARDING_DST_DIR/first-session-prompt.md"
+    if [[ -f "$ONBOARDING_SRC" ]]; then
+        action COPY "$ONBOARDING_DST"
+        if [[ $DRY_RUN -eq 0 ]]; then
+            mkdir -p "$ONBOARDING_DST_DIR"
+            cp "$ONBOARDING_SRC" "$ONBOARDING_DST"
+        fi
+        CREATED_PATHS+=("$ONBOARDING_DST")
+
+        echo
+        echo "=============================================================="
+        echo "  Ready for your first guided session?"
+        echo "=============================================================="
+        echo
+        echo "  1. Install Obsidian (free) from https://obsidian.md"
+        echo "  2. Pick a folder to be your knowledge vault. Open it in Obsidian."
+        echo "  3. From a terminal, run:"
+        echo "       cd <your-vault-folder>"
+        echo "       claude"
+        echo "  4. Paste this as your first message to Claude:"
+        echo "       read ~/.claude/onboarding/first-session-prompt.md and walk me through it"
+        echo
+        echo "  Or read it yourself at:"
+        echo "    $ONBOARDING_DST"
+        echo
+    else
+        echo "  SKIP    onboarding (template not present at $ONBOARDING_SRC)"
+    fi
+fi
+
 trap - EXIT
 exit 0

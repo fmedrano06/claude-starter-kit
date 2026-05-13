@@ -52,3 +52,6 @@ out/
 .env
 .env.local
 .env.*.local
+
+# Session handoffs and audit artifacts (local process meta, not product)
+_session-handoffs/

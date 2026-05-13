@@ -175,6 +175,21 @@ reporting to the user:
   `CLAUDE_HOME` (excluding the backup directory itself).
 - Tell the user exactly which step failed and what the error was.
 
+### Step 12 — Optional onboarding hand-off
+
+If `show_onboarding_after_install` is true, copy
+`templates/first-session-prompt.md` to
+`CLAUDE_HOME/onboarding/first-session-prompt.md` (create the
+`onboarding/` directory if it does not exist) and print the same
+message described in `install/install.ps1` and `install/install.sh`
+under the heading "Ready for your first guided session?". The message
+walks the user through installing Obsidian, picking a vault folder,
+opening Claude Code inside it, and pasting `read
+~/.claude/onboarding/first-session-prompt.md and walk me through it`
+as their first message.
+
+If `show_onboarding_after_install` is false, skip this step entirely.
+
 ---
 
 ## After the install

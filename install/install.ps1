@@ -339,6 +339,46 @@ try {
         $open = Read-Boolean -Prompt 'Open the guide in your default browser?' -Default $true
         if ($open) { Start-Process $guidePath }
     }
+
+    # -----------------------------------------------------------------------
+    # Step 11: optional onboarding hand-off
+    # -----------------------------------------------------------------------
+    $showOnboarding = $false
+    if ($answers.ContainsKey('show_onboarding_after_install')) {
+        $showOnboarding = [bool]$answers.show_onboarding_after_install
+    }
+    if ($showOnboarding) {
+        $onboardingSrc = Join-Path $RepoRoot 'templates\first-session-prompt.md'
+        $onboardingDstDir = Join-Path $ClaudeHome 'onboarding'
+        $onboardingDst = Join-Path $onboardingDstDir 'first-session-prompt.md'
+        if (Test-Path -LiteralPath $onboardingSrc) {
+            Write-Action 'COPY' $onboardingDst
+            Invoke-FsAction {
+                New-Item -ItemType Directory -Path $onboardingDstDir -Force | Out-Null
+                Copy-Item -LiteralPath $onboardingSrc -Destination $onboardingDst -Force
+            }
+            Track-Write $onboardingDst
+
+            Write-Host ''
+            Write-Host '==============================================================' -ForegroundColor Cyan
+            Write-Host '  Ready for your first guided session?' -ForegroundColor Cyan
+            Write-Host '==============================================================' -ForegroundColor Cyan
+            Write-Host ''
+            Write-Host '  1. Install Obsidian (free) from https://obsidian.md'
+            Write-Host '  2. Pick a folder to be your knowledge vault. Open it in Obsidian.'
+            Write-Host '  3. From a terminal, run:'
+            Write-Host '       cd <your-vault-folder>'
+            Write-Host '       claude'
+            Write-Host '  4. Paste this as your first message to Claude:'
+            Write-Host '       read ~/.claude/onboarding/first-session-prompt.md and walk me through it'
+            Write-Host ''
+            Write-Host '  Or read it yourself at:'
+            Write-Host "    $onboardingDst"
+            Write-Host ''
+        } else {
+            Write-Host "  SKIP    onboarding (template not present at $onboardingSrc)" -ForegroundColor DarkYellow
+        }
+    }
 }
 catch {
     Write-Host ''

@@ -87,6 +87,12 @@
       "type": "boolean",
       "prompt": "Enable the Stop hook that plays a sound / shows a desktop notification when Claude finishes a turn?",
       "default": true
+    },
+    {
+      "id": "show_onboarding_after_install",
+      "type": "boolean",
+      "prompt": "After install, print a path to a guided onboarding that helps you set up an Obsidian knowledge vault and your first project?",
+      "default": true
     }
   ]
 }
