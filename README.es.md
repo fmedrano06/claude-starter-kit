@@ -30,8 +30,13 @@ preguntas en lenguaje natural mientras avanza.
 2. Abre Claude Code dentro del directorio clonado.
 3. Escribe: **"read SETUP.md and install the starter kit"**.
 
-Claude camina el wizard contigo, escribe los archivos, y te dice
-cuándo puedes reiniciar la sesión para que tome la configuración nueva.
+Claude camina contigo el **wizard adaptativo** (primero te pregunta si
+eres principiante, intermedio o senior, y después te hace 6–14 preguntas
+ajustadas a ese nivel). El `CLAUDE.md` resultante, el modelo por defecto,
+el perfil de permisos, el preset de la barra de estado y el vault de
+conocimiento opcional (compatible con Obsidian) los moldean tus
+respuestas. Reinicia la sesión cuando Claude termine para que tome la
+configuración nueva.
 
 ### Camino B — Windows, sin Claude Code todavía
 
@@ -115,4 +120,4 @@ MIT. Ver [`LICENSE`](./LICENSE).
 
 ## Versionamiento
 
-Ver [`CHANGELOG.md`](./CHANGELOG.md). La versión actual es **0.3.0**.
+Ver [`CHANGELOG.md`](./CHANGELOG.md). La versión actual es **0.4.0**.

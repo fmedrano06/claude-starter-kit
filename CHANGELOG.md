@@ -4,6 +4,85 @@ All notable changes to this project are documented here. The format is
 based on [Keep a Changelog](https://keepachangelog.com/), and this
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] — 2026-05-14
+
+The "no more generic install" release. The wizard is now an adaptive
+interview, the CLAUDE.md is tailored to the user's level, and Claude Code
+optimization (model, permissions, status line, MCP API keys) is configured
+during install instead of left for the user to discover later. Knowledge
+vault scaffolding is part of the main install flow.
+
+### Added — adaptive wizard
+
+- **Schema 2.0** for `install/lib/wizard-questions.json`: a top-level
+  `level_question` plus three `branches` (beginner / intermediate /
+  senior). Each branch carries 14–15 questions tuned to that level.
+- **Inline explainers** under every prompt (bilingual) so the user
+  understands what each question means without leaving the terminal.
+- **Conditional questions**: API key prompts only fire when the
+  corresponding MCP is selected; vault path only when vault setup is
+  requested.
+- **Secret prompts**: API keys and personal access tokens are read
+  without echoing to the screen.
+
+### Added — adaptive CLAUDE.md
+
+- `templates/CLAUDE.md.template` now uses `{{IF_LEVEL:...}}...{{END}}`
+  conditional blocks. The installer resolves them in a first pass before
+  substituting placeholders. Output differs meaningfully per level:
+  - **Beginner**: "patient senior engineer" identity, jargon defined
+    inline, no two-step rule, simpler "what done means".
+  - **Intermediate**: peer tone, full Karpathy principles, full two-step
+    rule, mid-strength "what done means".
+  - **Senior**: production-grade identity, all rules, strictest "what
+    done means", `refs/` policy section.
+- New placeholders: `{{LEVEL}}`, `{{DEFAULT_MODEL}}`,
+  `{{COST_FLAG_THRESHOLD}}`, `{{VAULT_PATH}}`, `{{PRIMARY_GOAL_HUMAN}}`.
+
+### Added — Claude Code optimization in the wizard
+
+- **Default model** chosen from `monthly_ai_budget` (haiku /
+  sonnet / opus). Written to `settings.json` as `model` and surfaced
+  in the rendered CLAUDE.md.
+- **Permission profile** (`cautious` / `balanced` / `expert`) maps to
+  `skipAutoPermissionPrompt` and `skipDangerousModePermissionPrompt`.
+- **Status line preset** (`minimal` / `balanced` / `verbose`) composes
+  the `statusLine.command` field.
+- **MCP API keys** prompted at install time and written into
+  `mcpServers.<server>.headers` or `.env` rather than left for the user
+  to fix later. Blank input is allowed — the value can still be set as
+  an environment variable post-install.
+
+### Added — knowledge vault scaffold
+
+- New install step (9.5): if `setup_vault=true`, the installer creates
+  the Karpathy folder layout (`raw/`, `wiki/`, `outputs/`, `projects/`,
+  `_daily/`, `_session-handoffs/`) at the chosen vault path, writes a
+  vault-local `CLAUDE.md` explaining the layout, and seeds today's
+  daily note.
+- The global CLAUDE.md gains a "Knowledge vault" section pointing to
+  the chosen path when the vault is enabled.
+
+### Changed
+
+- `SETUP.md` rewritten for Claude: step 2 documents schema 2.0, step 3
+  documents the branched + conditional flow, step 5 documents the
+  two-pass template render, step 7 documents post-merge transformations,
+  new step 7.5 documents the vault scaffold.
+- `README.md` / `README.es.md` mention the adaptive wizard prominently.
+- `GETTING-STARTED.md` / `.es.md` updated to describe the level
+  selection step and what changes per level.
+- Validation gate (`test_installer.ps1`) now runs three end-to-end
+  scenarios (beginner / intermediate / senior) and asserts that the
+  generated CLAUDE.md actually differs by level. 65 asserts total.
+
+### Migration from v0.3.0
+
+Re-run the installer. It detects the prior install, backs everything up
+to `~/.claude/.backup-<timestamp>/`, and replays the wizard. Pick the
+level you actually are — the previous v0.3.0 CLAUDE.md was effectively
+"senior tone" for everyone.
+
 ## [0.3.0] — 2026-05-13
 
 ### Added
@@ -109,6 +188,7 @@ Initial public release.
   extended documentation.
 - `README.md`, `LICENSE` (MIT), `.gitignore`.
 
+[0.4.0]: https://github.com/fmedrano06/claude-starter-kit/releases/tag/v0.4.0
 [0.3.0]: https://github.com/fmedrano06/claude-starter-kit/releases/tag/v0.3.0
 [0.2.1]: https://github.com/fmedrano06/claude-starter-kit/releases/tag/v0.2.1
 [0.2.0]: https://github.com/fmedrano06/claude-starter-kit/releases/tag/v0.2.0

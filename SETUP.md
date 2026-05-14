@@ -50,37 +50,58 @@ backup created in step 4, and report the failing step to the user.
 Record this path as `CLAUDE_HOME`. Create the directory if it does not
 exist.
 
-### Step 2 — Load the wizard questions
+### Step 2 — Load the wizard questions (schema 2.0)
 
-Read `install/lib/wizard-questions.json` from this repository. Parse it
-as JSON and iterate the `questions` array in order. The file is the
-single source of truth for prompts; do not invent additional questions
-and do not skip any.
+Read `install/lib/wizard-questions.json`. Parse it as JSON. The file is
+the single source of truth — do not invent extra questions, do not skip
+any, do not reorder.
+
+The schema has two top-level pieces:
+
+- `level_question` — a single `single-select` question asking the user
+  for their experience level (`beginner` / `intermediate` / `senior`).
+- `branches` — an object keyed by level, each holding an array of
+  questions specific to that branch.
 
 ### Step 3 — Ask the user the wizard questions
 
-For each question object, call `AskUserQuestion` with the `prompt`
-field. Honour the `type` field:
+Step 3a: also ask first which language the wizard should run in. Default
+to English unless the user clearly prefers Spanish. Use the `*_es`
+fields when the user picks Spanish (`prompt_es`, `explainer_es`,
+`description_es`, `label_es`).
 
-- `text` — accept free text. If empty and a `default` is set, use the
-  default.
-- `boolean` — accept yes / no. Default applies if the user just hits
-  enter.
-- `single-select` — present `options` as choices, accept one.
-- `multi-select` — present `options` as choices, accept any subset
-  including the empty set.
+Step 3b: ask `level_question`. Record the answer as
+`answers.experience_level`. This decides which branch to iterate next.
 
-Collect the answers into a dictionary keyed by question `id`. The
-expected keys are: `user_name`, `user_role`, `primary_language`,
-`communication_language`, `skills_to_install`, `mcps_to_enable`,
-`enable_stop_hook`.
+Step 3c: iterate `branches[<level>]` in order. For each question:
+
+- Honour the `type` field:
+  - `text` — free text. If empty and a `default` is set, use the
+    default.
+  - `boolean` — yes / no. Default applies on blank input.
+  - `single-select` — present `options` as choices, accept one.
+  - `multi-select` — present `options`, accept any subset (including
+    empty).
+- If the question has an `explainer` (or `explainer_es`), show it
+  beneath the prompt as a hint.
+- If the question has a `secret: true` field (API keys, tokens), do not
+  echo the value as the user types — mask it.
+- If the question has a `conditional` field, only ask it when the
+  prerequisite answer matches. Forms:
+  - `{ "if_answer": "<other_id>", "equals": <value> }` — ask only when
+    `answers[<other_id>] === <value>`.
+  - `{ "if_answer": "<other_id>", "contains": "<value>" }` — ask only
+    when `answers[<other_id>]` is a list containing `<value>`.
+
+Collect everything into a flat dictionary keyed by question `id`. The
+exact set of keys depends on the branch; do not assume a fixed list.
 
 ### Step 4 — Idempotency check and backup
 
 Check whether `CLAUDE_HOME/CLAUDE.md` exists.
 
 - If it exists and begins with the marker comment
-  `<!-- claude-starter-kit v0.3.0 -->`, this kit is already installed.
+  `<!-- claude-starter-kit v0.4.0 -->`, this kit is already installed.
   Ask the user with `AskUserQuestion` whether to re-install. If they
   decline, stop here and report no changes made.
 - If it exists at all, ask the user permission to back up the current
@@ -92,17 +113,39 @@ Check whether `CLAUDE_HOME/CLAUDE.md` exists.
 
 ### Step 5 — Render and write CLAUDE.md
 
-Read `templates/CLAUDE.md.template`. Substitute these placeholders with
-the wizard answers:
+Read `templates/CLAUDE.md.template`. Rendering is a two-pass process:
+
+**Pass 1: resolve conditional blocks.** The template contains blocks of
+the form `{{IF_LEVEL:<spec>}}...{{END}}`. Two flavors:
+
+- Level list: `{{IF_LEVEL:beginner}}` or `{{IF_LEVEL:intermediate|senior}}`.
+  Include the body only if `answers.experience_level` is in the list.
+- Answer match: `{{IF_LEVEL:setup_vault:true}}`. Include the body only
+  if the named answer equals the value after the colon.
+
+Strip the markers along with the bodies of non-matching blocks.
+
+**Pass 2: substitute placeholders.** Replace these tokens with the
+matching wizard answer (or derived value):
 
 - `{{USER_NAME}}` ← `user_name`
-- `{{USER_ROLE}}` ← `user_role`
-- `{{PRIMARY_LANGUAGE}}` ← `primary_language`
+- `{{USER_ROLE}}` ← `user_role` (may be blank in beginner branch)
+- `{{PRIMARY_LANGUAGE}}` ← `primary_language` (use `"unsure"` if blank)
 - `{{COMMUNICATION_LANGUAGE}}` ← `communication_language`
+- `{{TODAY}}` ← today in `YYYY-MM-DD`
+- `{{MEMORY_DIR}}` ← absolute path to the auto-memory directory
+- `{{LEVEL}}` ← `experience_level`
+- `{{DEFAULT_MODEL}}` ← `haiku` if budget is `none`/`under_20`,
+  `sonnet` if `under_100`, `opus` if `over_100`
+- `{{COST_FLAG_THRESHOLD}}` ← `5` / `10` / `25` / `100` matching the
+  same budget tiers
+- `{{VAULT_PATH}}` ← `vault_path` if `setup_vault=true`, else `(none)`
+- `{{PRIMARY_GOAL_HUMAN}}` ← human-readable mapping of `primary_goal`
+  (`learn_to_code` → "learn to code", etc.). Blank when absent.
 
 Write the rendered content to `CLAUDE_HOME/CLAUDE.md`. The rendered
 file must begin with the marker comment
-`<!-- claude-starter-kit v0.3.0 -->` so step 4 of a future re-install
+`<!-- claude-starter-kit v0.4.0 -->` so step 4 of a future re-install
 can detect it.
 
 ### Step 6 — Copy selected skills
@@ -129,8 +172,41 @@ Deep-merge the template into the existing settings:
   it. Ask the user with `AskUserQuestion` whether to merge in any new
   hook entries from the template.
 
+Then apply these v0.4.0 post-merge transformations based on the
+wizard answers:
+
+- Set `model` from `monthly_ai_budget` (same mapping as
+  `{{DEFAULT_MODEL}}` in step 5).
+- Apply `permission_profile`:
+  - `cautious` → `skipAutoPermissionPrompt=false`, `skipDangerousModePermissionPrompt=false`
+  - `balanced` → `skipAutoPermissionPrompt=true`, `skipDangerousModePermissionPrompt=false`
+  - `expert` → both `true`
+- Compose `statusLine.command` as
+  `"bash ~/.claude/statusline-command.sh <preset>"` where `<preset>` is
+  `status_line` (default `balanced`).
+- If `context7_api_key` is non-empty and `context7` is in
+  `mcps_to_enable`, set
+  `mcpServers.context7.headers.CONTEXT7_API_KEY = <value>`.
+- If `github_pat` is non-empty and `github` is in `mcps_to_enable`,
+  set `mcpServers.github.env.GITHUB_PERSONAL_ACCESS_TOKEN = <value>`.
+- If `enable_stop_hook=false`, delete `hooks.Stop` entirely.
+
 Write the merged object back to `CLAUDE_HOME/settings.json` with
 two-space indentation.
+
+### Step 7.5 — Scaffold the knowledge vault (if requested)
+
+If `setup_vault=true`:
+
+1. Expand `~` in `vault_path` to the user's home.
+2. Create the directories `raw/`, `wiki/`, `outputs/`, `projects/`,
+   `_daily/`, `_session-handoffs/` under the vault path.
+3. Write a vault-local `CLAUDE.md` explaining the Karpathy 3-folder
+   layout (see the installer scripts for the exact text).
+4. Create a daily-note seed at `_daily/<YYYY-MM-DD>.md` with a minimal
+   structure (`Today's intent`, `Notes`, `Tomorrow`).
+
+If `setup_vault=false`, skip this step entirely.
 
 ### Step 8 — Seed the auto-memory directory
 

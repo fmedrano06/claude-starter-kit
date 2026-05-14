@@ -99,12 +99,22 @@ read SETUP.md and install the starter kit
 
 Claude va a:
 
-1. Hacerte unas preguntas (tu nombre, tu rol, en qué idioma quieres
-   que te responda, qué features opcionales quieres).
-2. Hacer una **copia de seguridad** de tu configuración actual de
+1. Preguntarte en qué **idioma** correr el wizard (inglés o español).
+2. Pedirte que elijas tu **nivel de experiencia**: principiante,
+   intermedio, o senior. Elige **Principiante** si nunca has abierto una
+   terminal antes de hoy — para eso está literalmente esa opción. El
+   wizard ajusta las siguientes preguntas a tu nivel (un principiante
+   recibe ~10 preguntas con explicaciones debajo de cada una; un senior
+   recibe ~6 cortas).
+3. Llevarte por esas preguntas: nombre, para qué quieres usar Claude,
+   tu presupuesto mensual de IA, si quieres montar un vault de
+   conocimiento Obsidian, qué skills/MCPs opcionales instalar, etc.
+4. Hacer una **copia de seguridad** de tu configuración actual de
    Claude Code — para que si algo sale mal, nada se pierde.
-3. Escribir los archivos de configuración nuevos.
-4. Decirte qué se instaló y dónde quedó.
+5. Escribir los archivos de configuración nuevos (incluyendo un
+   CLAUDE.md ajustado a tu nivel, y la carpeta del vault Obsidian si la
+   pediste).
+6. Decirte qué se instaló y dónde quedó.
 
 El proceso completo toma 1–2 minutos una vez que empiezas a responder.
 

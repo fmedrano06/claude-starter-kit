@@ -39,7 +39,7 @@ if [[ ! -f "$WIZARD_JSON" ]]; then
 fi
 
 CLAUDE_HOME="${HOME}/.claude"
-MARKER='<!-- claude-starter-kit v0.3.0 -->'
+MARKER='<!-- claude-starter-kit v0.4.0 -->'
 
 # ---------------------------------------------------------------------------
 # Dependencies
@@ -211,19 +211,30 @@ prompt_bool() {
 }
 
 prompt_multi() {
-    local prompt="$1"; shift
+    local prompt="$1" default_csv="$2"; shift 2
     echo "$prompt" >&2
     local i=1
+    local default_idxs=""
     for opt in "$@"; do
         local id label desc
         id="$(echo "$opt" | cut -d'|' -f1)"
         label="$(echo "$opt" | cut -d'|' -f2)"
         desc="$(echo "$opt" | cut -d'|' -f3-)"
+        if [[ ",$default_csv," == *",$id,"* ]]; then
+            default_idxs+="${i},"
+        fi
         printf '  %d. %s — %s\n' "$i" "$label" "$desc" >&2
         i=$((i + 1))
     done
+    default_idxs="${default_idxs%,}"
+    local label="${T_MULTI_BLANK%": "}"
+    [[ -n "$default_idxs" ]] && label+=" [default: $default_idxs]"
     local reply=""
-    read -r -p "$T_MULTI_BLANK" reply || true
+    read -r -p "$label: " reply || true
+    if [[ -z "$reply" ]]; then
+        # Use default
+        reply="$default_idxs"
+    fi
     local result=()
     if [[ -n "$reply" ]]; then
         IFS=',' read -ra tokens <<< "$reply"
@@ -238,6 +249,65 @@ prompt_multi() {
     printf '%s\n' "${result[@]+"${result[@]}"}"
 }
 
+prompt_single() {
+    local prompt="$1" default_id="$2"; shift 2
+    echo "$prompt" >&2
+    local i=1
+    local default_idx=""
+    for opt in "$@"; do
+        local id label desc marker=" "
+        id="$(echo "$opt" | cut -d'|' -f1)"
+        label="$(echo "$opt" | cut -d'|' -f2)"
+        desc="$(echo "$opt" | cut -d'|' -f3-)"
+        [[ "$id" == "$default_id" ]] && { marker="*"; default_idx="$i"; }
+        printf '  %s%d. %s — %s\n' "$marker" "$i" "$label" "$desc" >&2
+        i=$((i + 1))
+    done
+    local reply=""
+    if [[ -n "$default_idx" ]]; then
+        read -r -p "Enter number [default: $default_idx]: " reply || true
+    else
+        read -r -p "Enter number: " reply || true
+    fi
+    if [[ -z "$reply" ]]; then echo "$default_id"; return; fi
+    if [[ "$reply" =~ ^[0-9]+$ ]] && (( reply >= 1 && reply <= $# )); then
+        local opt="${!reply}"
+        echo "$(echo "$opt" | cut -d'|' -f1)"
+    else
+        echo "$default_id"
+    fi
+}
+
+prompt_secret() {
+    local prompt="$1" reply=""
+    # -s suppresses echo
+    read -r -s -p "$prompt: " reply || true
+    echo >&2  # newline after suppressed read
+    echo "$reply"
+}
+
+# Evaluates a conditional clause against current ANSWERS.
+# $1 = idx into branch, $2 = branch name. Returns 0 (ask) or 1 (skip).
+test_conditional() {
+    local branch="$1" idx="$2"
+    local cond
+    cond=$(json_get ".branches.${branch}[$idx].conditional" 2>/dev/null || echo "null")
+    if [[ -z "$cond" || "$cond" == "null" ]]; then return 0; fi
+    local if_answer equals contains
+    if_answer=$(echo "$cond" | (have jq && jq -r '.if_answer // empty' || python3 -c 'import json,sys; print(json.load(sys.stdin).get("if_answer",""))'))
+    equals=$(echo "$cond" | (have jq && jq -r '.equals // empty' || python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("equals","")) if "equals" in d else print("")'))
+    contains=$(echo "$cond" | (have jq && jq -r '.contains // empty' || python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("contains","")) if "contains" in d else print("")'))
+    if [[ -z "$if_answer" ]]; then return 0; fi
+    local actual="${ANSWERS[$if_answer]:-}"
+    if [[ -n "$equals" ]]; then
+        [[ "$actual" == "$equals" ]] && return 0 || return 1
+    fi
+    if [[ -n "$contains" ]]; then
+        [[ ",${actual}," == *",${contains},"* ]] && return 0 || return 1
+    fi
+    return 0
+}
+
 cwd_slug() {
     local cwd
     cwd="$(pwd)"
@@ -245,46 +315,71 @@ cwd_slug() {
 }
 
 # ---------------------------------------------------------------------------
-# Step 2-3: load and prompt
+# Step 2-3: adaptive wizard (schema 2.0)
 # ---------------------------------------------------------------------------
 echo "$T_WIZARD_HEADER"
-
-Q_COUNT=$(json_get '.questions' | (have jq && jq 'length' || python3 -c "import json,sys; print(len(json.load(sys.stdin)))"))
 
 declare -A ANSWERS
 declare -a SKILLS=()
 declare -a MCPS=()
 
-for (( idx=0; idx<Q_COUNT; idx++ )); do
-    q_id=$(json_get ".questions[$idx].id")
-    q_type=$(json_get ".questions[$idx].type")
-    q_prompt=$(json_get ".questions[$idx].prompt")
-    q_default=$(json_get ".questions[$idx].default")
-    if [[ "$LANG_CODE" == "es" ]]; then
-        q_prompt_es=$(json_get ".questions[$idx].prompt_es")
-        [[ -n "$q_prompt_es" && "$q_prompt_es" != "null" ]] && q_prompt="$q_prompt_es"
+# Helper to fetch a prompt/explainer in the active language.
+get_localized() {
+    # $1 = base value (English), $2 = _es value
+    if [[ "$LANG_CODE" == "es" && -n "$2" && "$2" != "null" ]]; then
+        echo "$2"
+    else
+        echo "$1"
     fi
+}
+
+ask_question() {
+    # $1 = jq-style base path, e.g. ".level_question" or ".branches.beginner[3]"
+    local base="$1"
+    local q_id q_type q_prompt q_prompt_es q_default q_explainer q_explainer_es q_secret
+    q_id=$(json_get "${base}.id")
+    q_type=$(json_get "${base}.type")
+    q_prompt=$(json_get "${base}.prompt")
+    q_prompt_es=$(json_get "${base}.prompt_es" 2>/dev/null || echo "")
+    q_default=$(json_get "${base}.default")
+    q_explainer=$(json_get "${base}.explainer" 2>/dev/null || echo "")
+    q_explainer_es=$(json_get "${base}.explainer_es" 2>/dev/null || echo "")
+    q_secret=$(json_get "${base}.secret" 2>/dev/null || echo "false")
+    local prompt explainer
+    prompt=$(get_localized "$q_prompt" "$q_prompt_es")
+    explainer=$(get_localized "$q_explainer" "$q_explainer_es")
+    [[ -n "$explainer" && "$explainer" != "null" ]] && echo "    $explainer" >&2
     case "$q_type" in
         text)
-            ANSWERS[$q_id]="$(prompt_text "$q_prompt" "$q_default")"
+            if [[ "$q_secret" == "true" ]]; then
+                ANSWERS[$q_id]="$(prompt_secret "$prompt")"
+                [[ -z "${ANSWERS[$q_id]}" ]] && ANSWERS[$q_id]="$q_default"
+            else
+                ANSWERS[$q_id]="$(prompt_text "$prompt" "$q_default")"
+            fi
             ;;
         boolean)
-            ANSWERS[$q_id]="$(prompt_bool "$q_prompt" "$q_default")"
+            ANSWERS[$q_id]="$(prompt_bool "$prompt" "$q_default")"
             ;;
         multi-select)
-            opt_count=$(json_get ".questions[$idx].options" | (have jq && jq 'length' || python3 -c "import json,sys; print(len(json.load(sys.stdin)))"))
-            opts=()
+            local opt_count
+            opt_count=$(json_get "${base}.options" | (have jq && jq 'length' || python3 -c "import json,sys; print(len(json.load(sys.stdin)))"))
+            local opts=()
             for (( o=0; o<opt_count; o++ )); do
-                o_id=$(json_get ".questions[$idx].options[$o].id")
-                o_label=$(json_get ".questions[$idx].options[$o].label")
-                o_desc=$(json_get ".questions[$idx].options[$o].description")
-                if [[ "$LANG_CODE" == "es" ]]; then
-                    o_desc_es=$(json_get ".questions[$idx].options[$o].description_es")
-                    [[ -n "$o_desc_es" && "$o_desc_es" != "null" ]] && o_desc="$o_desc_es"
-                fi
+                local o_id o_label o_label_es o_desc o_desc_es
+                o_id=$(json_get "${base}.options[$o].id")
+                o_label=$(json_get "${base}.options[$o].label")
+                o_label_es=$(json_get "${base}.options[$o].label_es" 2>/dev/null || echo "")
+                o_desc=$(json_get "${base}.options[$o].description")
+                o_desc_es=$(json_get "${base}.options[$o].description_es" 2>/dev/null || echo "")
+                o_label=$(get_localized "$o_label" "$o_label_es")
+                o_desc=$(get_localized "$o_desc" "$o_desc_es")
                 opts+=("$o_id|$o_label|$o_desc")
             done
-            mapfile -t selected < <(prompt_multi "$q_prompt" "${opts[@]}")
+            # Default CSV: jq returns ["a","b"] for arrays; convert.
+            local default_csv
+            default_csv=$(json_get "${base}.default" 2>/dev/null | (have jq && jq -r 'if type=="array" then join(",") else . end' || python3 -c 'import json,sys; d=json.load(sys.stdin); print(",".join(d) if isinstance(d,list) else d)'))
+            mapfile -t selected < <(prompt_multi "$prompt" "$default_csv" "${opts[@]}")
             if [[ "$q_id" == "skills_to_install" ]]; then
                 SKILLS=("${selected[@]+"${selected[@]}"}")
             elif [[ "$q_id" == "mcps_to_enable" ]]; then
@@ -293,13 +388,41 @@ for (( idx=0; idx<Q_COUNT; idx++ )); do
             ANSWERS[$q_id]="$(IFS=,; echo "${selected[*]+"${selected[*]}"}")"
             ;;
         single-select)
-            ANSWERS[$q_id]="$(prompt_text "$q_prompt" "$q_default")"
+            local opt_count
+            opt_count=$(json_get "${base}.options" | (have jq && jq 'length' || python3 -c "import json,sys; print(len(json.load(sys.stdin)))"))
+            local opts=()
+            for (( o=0; o<opt_count; o++ )); do
+                local o_id o_label o_label_es o_desc o_desc_es
+                o_id=$(json_get "${base}.options[$o].id")
+                o_label=$(json_get "${base}.options[$o].label")
+                o_label_es=$(json_get "${base}.options[$o].label_es" 2>/dev/null || echo "")
+                o_desc=$(json_get "${base}.options[$o].description")
+                o_desc_es=$(json_get "${base}.options[$o].description_es" 2>/dev/null || echo "")
+                o_label=$(get_localized "$o_label" "$o_label_es")
+                o_desc=$(get_localized "$o_desc" "$o_desc_es")
+                opts+=("$o_id|$o_label|$o_desc")
+            done
+            ANSWERS[$q_id]="$(prompt_single "$prompt" "$q_default" "${opts[@]}")"
             ;;
         *)
-            echo "Unknown question type: $q_type" >&2; exit 1 ;;
+            echo "Unknown question type: $q_type (id=$q_id)" >&2; exit 1 ;;
     esac
-done
+    echo
+}
+
+# Step 3a: experience level
+ask_question ".level_question"
+LEVEL="${ANSWERS[experience_level]}"
 echo
+
+# Step 3b: branch-specific questions
+BRANCH_COUNT=$(json_get ".branches.${LEVEL}" | (have jq && jq 'length' || python3 -c "import json,sys; print(len(json.load(sys.stdin)))"))
+for (( idx=0; idx<BRANCH_COUNT; idx++ )); do
+    if ! test_conditional "$LEVEL" "$idx"; then
+        continue
+    fi
+    ask_question ".branches.${LEVEL}[$idx]"
+done
 
 # ---------------------------------------------------------------------------
 # Step 4: idempotency + backup
@@ -348,17 +471,74 @@ trap 'rc=$?; if [[ $rc -ne 0 && $DRY_RUN -eq 0 ]]; then restore_backup; fi' EXIT
 
 render_template() {
     local tpl="$1"
-    local out="$tpl"
     local today memory_dir slug
     today="$(date +%Y-%m-%d)"
     slug="$(cwd_slug)"
     memory_dir="$CLAUDE_HOME/projects/$slug/memory"
+
+    # Derive variables
+    local budget="${ANSWERS[monthly_ai_budget]:-under_100}"
+    local default_model
+    case "$budget" in
+        none|under_20) default_model="haiku" ;;
+        under_100)     default_model="sonnet" ;;
+        over_100)      default_model="opus" ;;
+        *)             default_model="sonnet" ;;
+    esac
+    local cost_threshold
+    case "$budget" in
+        none)      cost_threshold="5" ;;
+        under_20)  cost_threshold="10" ;;
+        under_100) cost_threshold="25" ;;
+        over_100)  cost_threshold="100" ;;
+        *)         cost_threshold="25" ;;
+    esac
+    local vault_path="${ANSWERS[vault_path]:-}"
+    [[ -z "$vault_path" ]] && vault_path="(none)"
+    local primary_goal_human
+    case "${ANSWERS[primary_goal]:-}" in
+        learn_to_code)     primary_goal_human="learn to code" ;;
+        personal_projects) primary_goal_human="build personal projects" ;;
+        work_or_business)  primary_goal_human="do work or build a business" ;;
+        *)                 primary_goal_human="work with Claude Code" ;;
+    esac
+
+    # Resolve conditional blocks via python (multiline regex)
+    local resolved
+    resolved=$(LEVEL="$LEVEL" SETUP_VAULT="${ANSWERS[setup_vault]:-false}" python3 - <<'PY'
+import os, re, sys
+content = sys.stdin.read()
+level = os.environ.get("LEVEL", "intermediate")
+setup_vault = os.environ.get("SETUP_VAULT", "false")
+known_levels = {"beginner", "intermediate", "senior"}
+
+def repl(m):
+    spec, body = m.group(1), m.group(2)
+    if ":" not in spec:
+        levels = {x.strip() for x in spec.split("|")}
+        return body if level in levels else ""
+    key, expected = spec.split(":", 1)
+    key, expected = key.strip(), expected.strip()
+    actual = setup_vault if key == "setup_vault" else ""
+    return body if str(actual) == expected else ""
+
+print(re.sub(r"\{\{IF_LEVEL:([^}]+)\}\}([\s\S]*?)\{\{END\}\}", repl, content), end="")
+PY
+<<< "$tpl")
+
+    # Placeholder substitution
+    local out="$resolved"
     out="${out//\{\{USER_NAME\}\}/${ANSWERS[user_name]:-}}"
     out="${out//\{\{USER_ROLE\}\}/${ANSWERS[user_role]:-}}"
-    out="${out//\{\{PRIMARY_LANGUAGE\}\}/${ANSWERS[primary_language]:-}}"
+    out="${out//\{\{PRIMARY_LANGUAGE\}\}/${ANSWERS[primary_language]:-unsure}}"
     out="${out//\{\{COMMUNICATION_LANGUAGE\}\}/${ANSWERS[communication_language]:-English}}"
     out="${out//\{\{TODAY\}\}/$today}"
     out="${out//\{\{MEMORY_DIR\}\}/$memory_dir}"
+    out="${out//\{\{LEVEL\}\}/$LEVEL}"
+    out="${out//\{\{DEFAULT_MODEL\}\}/$default_model}"
+    out="${out//\{\{COST_FLAG_THRESHOLD\}\}/$cost_threshold}"
+    out="${out//\{\{VAULT_PATH\}\}/$vault_path}"
+    out="${out//\{\{PRIMARY_GOAL_HUMAN\}\}/$primary_goal_human}"
     printf '%s' "$out"
 }
 
@@ -467,20 +647,68 @@ PY
         else
             sed -i "s|~/\.claude/|${claude_home_escaped}/|g" "$DST_SETTINGS"
         fi
-        # Strip Stop hook block when user opted out.
-        if [[ "${ANSWERS[enable_stop_hook]:-true}" != "true" ]]; then
-            if have jq; then
-                jq 'del(.hooks.Stop)' "$DST_SETTINGS" > "$DST_SETTINGS.tmp" && mv "$DST_SETTINGS.tmp" "$DST_SETTINGS"
-            else
-                python3 - "$DST_SETTINGS" <<'PY'
-import json, sys
-p = sys.argv[1]
-with open(p, encoding="utf-8") as f: d = json.load(f)
-if isinstance(d.get("hooks"), dict): d["hooks"].pop("Stop", None)
-with open(p, "w", encoding="utf-8") as f: json.dump(d, f, indent=2)
+        # v0.4.0 — apply model / permission profile / status line / API keys / Stop-hook-opt-out.
+        BUDGET="${ANSWERS[monthly_ai_budget]:-under_100}"
+        case "$BUDGET" in
+            none|under_20) DEFAULT_MODEL="haiku" ;;
+            under_100)     DEFAULT_MODEL="sonnet" ;;
+            over_100)      DEFAULT_MODEL="opus" ;;
+            *)             DEFAULT_MODEL="sonnet" ;;
+        esac
+        PERM_PROFILE="${ANSWERS[permission_profile]:-balanced}"
+        SL_PRESET="${ANSWERS[status_line]:-balanced}"
+        STOP_OPTOUT="false"
+        [[ "${ANSWERS[enable_stop_hook]:-true}" != "true" ]] && STOP_OPTOUT="true"
+
+        DEFAULT_MODEL="$DEFAULT_MODEL" PERM_PROFILE="$PERM_PROFILE" SL_PRESET="$SL_PRESET" \
+        STOP_OPTOUT="$STOP_OPTOUT" \
+        CONTEXT7_KEY="${ANSWERS[context7_api_key]:-}" GITHUB_PAT="${ANSWERS[github_pat]:-}" \
+        DST_SETTINGS="$DST_SETTINGS" \
+        python3 - <<'PY'
+import json, os
+p = os.environ["DST_SETTINGS"]
+with open(p, encoding="utf-8") as f:
+    d = json.load(f)
+
+# model default
+d["model"] = os.environ["DEFAULT_MODEL"]
+
+# permission profile
+prof = os.environ["PERM_PROFILE"]
+if prof == "cautious":
+    d["skipAutoPermissionPrompt"] = False
+    d["skipDangerousModePermissionPrompt"] = False
+elif prof == "balanced":
+    d["skipAutoPermissionPrompt"] = True
+    d["skipDangerousModePermissionPrompt"] = False
+elif prof == "expert":
+    d["skipAutoPermissionPrompt"] = True
+    d["skipDangerousModePermissionPrompt"] = True
+
+# status line preset
+preset = os.environ["SL_PRESET"]
+cmd = "bash ~/.claude/statusline-command.sh " + (preset if preset in ("minimal","balanced","verbose") else "balanced")
+d.setdefault("statusLine", {})
+d["statusLine"]["type"] = "command"
+d["statusLine"]["command"] = cmd
+
+# MCP API keys
+ms = d.get("mcpServers", {})
+c7 = os.environ.get("CONTEXT7_KEY", "")
+if c7 and "context7" in ms:
+    ms["context7"].setdefault("headers", {})["CONTEXT7_API_KEY"] = c7
+gh = os.environ.get("GITHUB_PAT", "")
+if gh and "github" in ms:
+    ms["github"].setdefault("env", {})["GITHUB_PERSONAL_ACCESS_TOKEN"] = gh
+
+# Stop hook opt-out
+if os.environ["STOP_OPTOUT"] == "true":
+    if isinstance(d.get("hooks"), dict):
+        d["hooks"].pop("Stop", None)
+
+with open(p, "w", encoding="utf-8") as f:
+    json.dump(d, f, indent=2)
 PY
-            fi
-        fi
         rm -f "$TPL_RESOLVED"
     fi
     CREATED_PATHS+=("$DST_SETTINGS")
@@ -521,6 +749,49 @@ if [[ "${ANSWERS[enable_stop_hook]:-false}" == "true" ]]; then
         CREATED_PATHS+=("$HOOK_DST")
     else
         echo "  SKIP    Stop hook (template not present at $HOOK_TPL)"
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# Step 9.5 (v0.4.0): knowledge vault scaffold
+# ---------------------------------------------------------------------------
+VAULT_PATH_FINAL=""
+if [[ "${ANSWERS[setup_vault]:-false}" == "true" ]]; then
+    VAULT_RAW="${ANSWERS[vault_path]:-~/Documents/claude-vault}"
+    VAULT_PATH_FINAL="${VAULT_RAW/#\~/$HOME}"
+    action VAULT "$VAULT_PATH_FINAL"
+    if [[ $DRY_RUN -eq 0 ]]; then
+        for sub in raw wiki outputs projects _daily _session-handoffs; do
+            mkdir -p "$VAULT_PATH_FINAL/$sub"
+        done
+        cat > "$VAULT_PATH_FINAL/CLAUDE.md" <<EOF
+<!-- claude-starter-kit vault — generated $(date +%Y-%m-%d) -->
+
+# Knowledge vault — local rules
+
+This folder is a knowledge vault. It uses the Karpathy 3-folder layout
+plus a few utility folders:
+
+- \`raw/\` — unprocessed notes, dumps, transcripts, paste-ins.
+- \`wiki/\` — distilled, durable knowledge written for future-self.
+- \`outputs/\` — finished artifacts produced from raw + wiki.
+- \`projects/\` — one folder per active project.
+- \`_daily/\` — daily notes, format \`YYYY-MM-DD.md\`.
+- \`_session-handoffs/\` — Claude session handoffs.
+
+When the user asks you to "save a note" or "remember this for later"
+without specifying where, default to:
+
+- Quick capture, in-progress thinking → \`raw/YYYY-MM-DD-<slug>.md\`
+- A reusable lesson, pattern, or reference → \`wiki/<topic>.md\`
+- A finished thing → \`outputs/<project>/<slug>.<ext>\`
+
+Project-specific CLAUDE.md files in \`projects/<name>/\` override these
+defaults for that project.
+EOF
+        TODAY="$(date +%Y-%m-%d)"
+        DAILY="$VAULT_PATH_FINAL/_daily/$TODAY.md"
+        [[ ! -f "$DAILY" ]] && printf '# %s\n\n## Today'"'"'s intent\n\n## Notes\n\n## Tomorrow\n' "$TODAY" > "$DAILY"
     fi
 fi
 

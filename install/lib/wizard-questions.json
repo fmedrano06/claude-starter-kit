@@ -1,114 +1,360 @@
 {
-  "version": "1.1",
-  "questions": [
-    {
-      "id": "user_name",
-      "type": "text",
-      "prompt": "What name should Claude use when addressing you?",
-      "prompt_es": "¿Cómo quieres que Claude se dirija a ti?",
-      "default": ""
-    },
-    {
-      "id": "user_role",
-      "type": "text",
-      "prompt": "What is your role? (e.g. 'indie hacker', 'backend engineer', 'data scientist', 'student')",
-      "prompt_es": "¿Cuál es tu rol? (p.ej. 'indie hacker', 'backend engineer', 'data scientist', 'estudiante')",
-      "default": ""
-    },
-    {
-      "id": "primary_language",
-      "type": "text",
-      "prompt": "What are your primary programming languages? (e.g. 'TypeScript + Python', 'Go', 'Rust + C++')",
-      "prompt_es": "¿Cuáles son tus lenguajes principales de programación? (p.ej. 'TypeScript + Python', 'Go', 'Rust + C++')",
-      "default": ""
-    },
-    {
-      "id": "communication_language",
-      "type": "text",
-      "prompt": "What language should Claude reply to you in? (English is the default; type any human language to override)",
-      "prompt_es": "¿En qué idioma quieres que Claude te responda? (Por defecto inglés; escribe cualquier idioma humano para cambiarlo)",
-      "default": "English"
-    },
-    {
-      "id": "skills_to_install",
-      "type": "multi-select",
-      "prompt": "Which skills should be installed into ~/.claude/skills/? (Select any combination; all are optional.)",
-      "prompt_es": "¿Qué skills se instalan en ~/.claude/skills/? (Cualquier combinación; todos son opcionales.)",
-      "default": [],
-      "options": [
-        {
-          "id": "gh-issues",
-          "label": "gh-issues",
-          "description": "Fetch GitHub issues, spawn sub-agents to implement fixes, open PRs, and monitor review comments.",
-          "description_es": "Trae issues de GitHub, lanza sub-agentes para implementar fixes, abre PRs, y monitorea comentarios de review."
-        },
-        {
-          "id": "project-prime",
-          "label": "project-prime",
-          "description": "Mandatory 10-phase execution framework with binary exit gates for new projects, niches, or channels.",
-          "description_es": "Framework obligatorio de 10 fases con gates binarios para proyectos nuevos, nichos o canales."
-        },
-        {
-          "id": "graphify",
-          "label": "graphify",
-          "description": "Turn any input (code, docs, papers, images) into a clustered knowledge graph with HTML + JSON + audit report.",
-          "description_es": "Convierte cualquier input (código, docs, papers, imágenes) en un grafo de conocimiento clusterizado con HTML + JSON + reporte de auditoría."
-        },
-        {
-          "id": "impeccable",
-          "label": "impeccable",
-          "description": "Build distinctive, production-grade frontend interfaces that avoid generic AI aesthetics.",
-          "description_es": "Construye interfaces frontend distintivas y de calidad producción que evitan la estética genérica de IA."
-        },
-        {
-          "id": "ui-ux-pro-max",
-          "label": "ui-ux-pro-max",
-          "description": "UI/UX design intelligence: styles, palettes, font pairings, charts, and stack-aware component generation.",
-          "description_es": "Inteligencia de diseño UI/UX: estilos, paletas, combinaciones tipográficas, charts y generación de componentes consciente del stack."
-        }
-      ]
-    },
-    {
-      "id": "mcps_to_enable",
-      "type": "multi-select",
-      "prompt": "Which MCP servers should be enabled in ~/.claude/settings.json?",
-      "prompt_es": "¿Qué servidores MCP se activan en ~/.claude/settings.json?",
-      "default": [],
-      "_todo": "catalogs-eng may expand this list to match the final mcps.md catalog; team-lead reconciles at integration.",
-      "options": [
-        {
-          "id": "context7",
-          "label": "context7",
-          "description": "Fetches up-to-date documentation for libraries, frameworks, SDKs, and CLI tools.",
-          "description_es": "Trae documentación actualizada de librerías, frameworks, SDKs y herramientas CLI."
-        },
-        {
-          "id": "sequential-thinking",
-          "label": "sequential-thinking",
-          "description": "Structured step-by-step reasoning helper for multi-step problems.",
-          "description_es": "Ayudante de razonamiento estructurado paso a paso para problemas multi-paso."
-        },
-        {
-          "id": "github",
-          "label": "github",
-          "description": "Read and write access to GitHub issues, PRs, and repository content.",
-          "description_es": "Acceso de lectura y escritura a issues, PRs y contenido de repos de GitHub."
-        }
-      ]
-    },
-    {
-      "id": "enable_stop_hook",
-      "type": "boolean",
-      "prompt": "Enable the Stop hook that plays a sound / shows a desktop notification when Claude finishes a turn?",
-      "prompt_es": "¿Activar el Stop hook que reproduce un sonido / muestra una notificación de escritorio cuando Claude termina un turno?",
-      "default": true
-    },
-    {
-      "id": "show_onboarding_after_install",
-      "type": "boolean",
-      "prompt": "After install, print a path to a guided onboarding that helps you set up an Obsidian knowledge vault and your first project?",
-      "prompt_es": "Después del install, ¿imprimir la ruta a un onboarding guiado que te ayuda a montar un vault de conocimiento en Obsidian y tu primer proyecto?",
-      "default": true
-    }
-  ]
+  "version": "2.0",
+  "_doc": "Adaptive wizard schema. Installers ask 'experience_level' first, then iterate the questions for that branch. Each question can carry an `explainer` (sub-text shown beneath the prompt) and a `conditional` clause (only ask when a prior answer matches). Localization via *_es siblings.",
+  "level_question": {
+    "id": "experience_level",
+    "type": "single-select",
+    "prompt": "How would you describe your experience with coding and tools like Claude Code?",
+    "prompt_es": "¿Cómo describirías tu experiencia con programar y herramientas como Claude Code?",
+    "explainer": "This sets the tone of your CLAUDE.md and how detailed the install wizard is. You can re-run the installer later to change it.",
+    "explainer_es": "Esto define el tono de tu CLAUDE.md y qué tan detallado es el wizard. Puedes reinstalar después para cambiarlo.",
+    "default": "intermediate",
+    "options": [
+      {
+        "id": "beginner",
+        "label": "Beginner",
+        "label_es": "Principiante",
+        "description": "I am new to coding, or I have only done tutorials. I want Claude to explain things and ask before doing anything risky.",
+        "description_es": "Soy nuevo programando, o solo he hecho tutoriales. Quiero que Claude me explique las cosas y pregunte antes de hacer algo riesgoso."
+      },
+      {
+        "id": "intermediate",
+        "label": "Intermediate",
+        "label_es": "Intermedio",
+        "description": "I can write and ship working software but I am not a senior. I want a productive setup without too much hand-holding.",
+        "description_es": "Puedo escribir y publicar software que funciona pero no soy senior. Quiero un setup productivo sin demasiado tutorial."
+      },
+      {
+        "id": "senior",
+        "label": "Senior",
+        "label_es": "Senior",
+        "description": "I have shipped production code for years. I want minimum friction and the most opinionated defaults.",
+        "description_es": "Llevo años publicando código en producción. Quiero mínima fricción y los defaults más opinados."
+      }
+    ]
+  },
+  "branches": {
+    "beginner": [
+      {
+        "id": "user_name",
+        "type": "text",
+        "prompt": "What name should Claude use when addressing you?",
+        "prompt_es": "¿Cómo quieres que Claude se dirija a ti?",
+        "explainer": "First name is fine. Claude will say things like 'Hi Alex, here is what I propose...' when working with you.",
+        "explainer_es": "Tu nombre de pila está bien. Claude te dirá cosas como 'Hola Alex, esto es lo que propongo...' cuando trabaje contigo.",
+        "default": ""
+      },
+      {
+        "id": "communication_language",
+        "type": "text",
+        "prompt": "What language should Claude reply to you in?",
+        "prompt_es": "¿En qué idioma quieres que Claude te responda?",
+        "explainer": "Type any human language. Code, file names, and commit messages stay in English regardless.",
+        "explainer_es": "Cualquier idioma humano. El código, nombres de archivo y mensajes de commit se quedan en inglés.",
+        "default": "English"
+      },
+      {
+        "id": "primary_goal",
+        "type": "single-select",
+        "prompt": "What do you mainly want to use Claude Code for?",
+        "prompt_es": "¿Para qué quieres usar Claude Code principalmente?",
+        "explainer": "This shapes whether your CLAUDE.md emphasizes learning, shipping, or both.",
+        "explainer_es": "Esto define si tu CLAUDE.md enfatiza aprender, publicar, o ambos.",
+        "default": "learn_to_code",
+        "options": [
+          { "id": "learn_to_code",     "label": "Learn to code",                 "label_es": "Aprender a programar",            "description": "I am here to learn. Walk me through things and explain decisions.",                 "description_es": "Estoy aquí para aprender. Camina las cosas conmigo y explica las decisiones." },
+          { "id": "personal_projects", "label": "Build personal projects",        "label_es": "Construir proyectos personales",  "description": "I want to ship things for myself — websites, scripts, automations.",                 "description_es": "Quiero publicar cosas para mí mismo — sitios web, scripts, automatizaciones." },
+          { "id": "work_or_business",  "label": "Work or business",              "label_es": "Trabajo o negocio",               "description": "I am building something serious — for a job, a client, or a product.",              "description_es": "Estoy construyendo algo serio — para un trabajo, cliente o producto." }
+        ]
+      },
+      {
+        "id": "primary_language",
+        "type": "text",
+        "prompt": "What programming language(s) do you want Claude to default to? (If you're not sure, type 'unsure' — Claude will figure it out per project.)",
+        "prompt_es": "¿Qué lenguaje(s) de programación quieres que Claude use por defecto? (Si no estás seguro, escribe 'no sé' — Claude lo decide por proyecto.)",
+        "explainer": "Examples: 'Python', 'JavaScript', 'TypeScript + React'. This is a default — Claude follows whatever language a project actually uses.",
+        "explainer_es": "Ejemplos: 'Python', 'JavaScript', 'TypeScript + React'. Esto es solo un default — Claude sigue el idioma real del proyecto.",
+        "default": "unsure"
+      },
+      {
+        "id": "monthly_ai_budget",
+        "type": "single-select",
+        "prompt": "What is your monthly budget for AI tools (Claude, OpenAI, etc.) combined?",
+        "prompt_es": "¿Cuál es tu presupuesto mensual para herramientas de IA (Claude, OpenAI, etc.) en total?",
+        "explainer": "Claude has three models: Haiku (cheap, fast), Sonnet (balanced), Opus (most capable, most expensive). Your budget defines the default model the kit sets and how aggressively the cost-awareness rules kick in.",
+        "explainer_es": "Claude tiene tres modelos: Haiku (barato, rápido), Sonnet (balanceado), Opus (más capaz, más caro). Tu presupuesto define el modelo default del kit y qué tan agresivas son las reglas de costo.",
+        "default": "under_20",
+        "options": [
+          { "id": "none",       "label": "$0 (free tier only)",   "label_es": "$0 (solo tier gratis)",       "description": "Use only what is free.",                          "description_es": "Solo usar lo que es gratis." },
+          { "id": "under_20",   "label": "Under $20/month",       "label_es": "Menos de $20/mes",            "description": "Standard Claude Pro subscription.",               "description_es": "Suscripción estándar de Claude Pro." },
+          { "id": "under_100",  "label": "$20–$100/month",        "label_es": "$20–$100/mes",                "description": "Comfortable headroom for daily use.",             "description_es": "Margen cómodo para uso diario." },
+          { "id": "over_100",   "label": "Over $100/month",       "label_es": "Más de $100/mes",             "description": "Production work, no concern about model cost.",   "description_es": "Trabajo de producción, sin preocupación por costo del modelo." }
+        ]
+      },
+      {
+        "id": "permission_profile",
+        "type": "single-select",
+        "prompt": "When Claude wants to run a command or edit a file, what should it do?",
+        "prompt_es": "Cuando Claude quiera correr un comando o editar un archivo, ¿qué debe hacer?",
+        "explainer": "'Cautious' is recommended while you're learning — you see and approve everything Claude does before it happens.",
+        "explainer_es": "'Cauteloso' es lo recomendado mientras aprendes — ves y apruebas todo lo que Claude hace antes de que pase.",
+        "default": "cautious",
+        "options": [
+          { "id": "cautious",  "label": "Cautious — ask before everything",    "label_es": "Cauteloso — pregunta antes de todo",          "description": "Maximum safety. Claude pauses before each tool call.",                "description_es": "Máxima seguridad. Claude pausa antes de cada herramienta." },
+          { "id": "balanced",  "label": "Balanced — ask only on risky things", "label_es": "Balanceado — pregunta solo en cosas riesgosas", "description": "Safe defaults are auto-approved; deletions, force-pushes, etc. still ask.", "description_es": "Defaults seguros se auto-aprueban; eliminaciones, force-push, etc. siguen preguntando." }
+        ]
+      },
+      {
+        "id": "setup_vault",
+        "type": "boolean",
+        "prompt": "Set up a knowledge vault now? (Recommended)",
+        "prompt_es": "¿Configurar un vault de conocimiento ahora? (Recomendado)",
+        "explainer": "A vault is a folder where Claude saves notes, project plans, and what it learns about you across sessions. You can open it with Obsidian (free) to read and edit those notes yourself.",
+        "explainer_es": "Un vault es una carpeta donde Claude guarda notas, planes de proyecto, y lo que aprende de ti entre sesiones. Puedes abrirla con Obsidian (gratis) para leer y editar esas notas tú mismo.",
+        "default": true
+      },
+      {
+        "id": "vault_path",
+        "type": "text",
+        "prompt": "Where should the vault folder live?",
+        "prompt_es": "¿Dónde debe vivir la carpeta del vault?",
+        "explainer": "Default is fine for most people. If you already use Obsidian, point this to an empty folder inside your existing vault.",
+        "explainer_es": "El default está bien para la mayoría. Si ya usas Obsidian, apunta esto a una carpeta vacía dentro de tu vault existente.",
+        "default": "~/Documents/claude-vault",
+        "conditional": { "if_answer": "setup_vault", "equals": true }
+      },
+      {
+        "id": "skills_to_install",
+        "type": "multi-select",
+        "prompt": "Which optional helper skills do you want?",
+        "prompt_es": "¿Qué skills opcionales quieres?",
+        "explainer": "Skills are extra instructions Claude can load when relevant. None of them are required — you can install them later by re-running this wizard.",
+        "explainer_es": "Las skills son instrucciones extra que Claude puede cargar cuando son relevantes. Ninguna es obligatoria — las puedes instalar después reinstalando el wizard.",
+        "default": ["project-prime", "impeccable"],
+        "options": [
+          { "id": "project-prime",  "label": "project-prime",  "label_es": "project-prime",  "description": "Step-by-step framework that guides you through starting a new project, channel, or content series. Great for beginners — turns vague ideas into a plan.",                                  "description_es": "Framework paso-a-paso que te guía al empezar un proyecto, canal, o serie de contenido. Ideal para principiantes — convierte ideas vagas en un plan." },
+          { "id": "impeccable",     "label": "impeccable",     "label_es": "impeccable",     "description": "Builds distinctive, production-quality frontend interfaces. Useful if you want to make websites that don't look generic-AI.",                                                           "description_es": "Construye interfaces frontend distintivas y de calidad. Útil si quieres hacer sitios web que no se vean genéricos-de-IA." },
+          { "id": "ui-ux-pro-max",  "label": "ui-ux-pro-max",  "label_es": "ui-ux-pro-max",  "description": "Heavy UI/UX intelligence: color palettes, typography, layouts, charts. Pair with impeccable.",                                                                                       "description_es": "Inteligencia UI/UX pesada: paletas, tipografía, layouts, charts. Va bien con impeccable." },
+          { "id": "gh-issues",      "label": "gh-issues",      "label_es": "gh-issues",      "description": "Pulls GitHub issues, spawns sub-agents to fix them, opens PRs. Skip if you don't use GitHub yet.",                                                                                  "description_es": "Trae issues de GitHub, lanza sub-agentes para arreglarlos, abre PRs. Sáltalo si todavía no usas GitHub." },
+          { "id": "graphify",       "label": "graphify",       "label_es": "graphify",       "description": "Turns any input (notes, papers, code) into a clustered knowledge graph. Nice-to-have, not essential.",                                                                                "description_es": "Convierte cualquier input (notas, papers, código) en un grafo de conocimiento clusterizado. Nice-to-have, no esencial." }
+        ]
+      },
+      {
+        "id": "mcps_to_enable",
+        "type": "multi-select",
+        "prompt": "Which optional external services should Claude connect to?",
+        "prompt_es": "¿A qué servicios externos opcionales debe conectarse Claude?",
+        "explainer": "These are called MCPs (Model Context Protocol servers). 'sequential-thinking' is free; 'context7' needs a free API key from context7.com; 'github' needs a GitHub personal access token.",
+        "explainer_es": "Se llaman MCPs (Model Context Protocol). 'sequential-thinking' es gratis; 'context7' necesita un API key gratis de context7.com; 'github' necesita un token personal de GitHub.",
+        "default": ["sequential-thinking"],
+        "options": [
+          { "id": "sequential-thinking", "label": "sequential-thinking", "label_es": "sequential-thinking", "description": "Lets Claude reason step-by-step on hard problems. Free, no key needed.",                                       "description_es": "Permite que Claude razone paso-a-paso en problemas difíciles. Gratis, sin key." },
+          { "id": "context7",            "label": "context7",            "label_es": "context7",            "description": "Fetches live docs for libraries and frameworks. Needs a free key. Stops Claude from hallucinating outdated APIs.", "description_es": "Trae docs actualizadas de librerías y frameworks. Necesita key gratis. Evita que Claude invente APIs viejos." },
+          { "id": "github",              "label": "github",              "label_es": "github",              "description": "Reads/writes GitHub issues, PRs, repo content. Needs a Personal Access Token.",                                  "description_es": "Lee y escribe issues, PRs y contenido de repos de GitHub. Necesita un Personal Access Token." }
+        ]
+      },
+      {
+        "id": "context7_api_key",
+        "type": "text",
+        "prompt": "Paste your context7 API key (or press Enter to skip and set it as an env var later)",
+        "prompt_es": "Pega tu API key de context7 (o Enter para saltar y configurarla como variable de entorno después)",
+        "explainer": "Get one at https://context7.com (free signup). The installer will tell you how to add it later if you skip.",
+        "explainer_es": "Consigue una en https://context7.com (registro gratis). Si saltas, el installer te dice cómo agregarla después.",
+        "default": "",
+        "secret": true,
+        "conditional": { "if_answer": "mcps_to_enable", "contains": "context7" }
+      },
+      {
+        "id": "github_pat",
+        "type": "text",
+        "prompt": "Paste your GitHub Personal Access Token (or press Enter to skip)",
+        "prompt_es": "Pega tu Personal Access Token de GitHub (o Enter para saltar)",
+        "explainer": "Create one at https://github.com/settings/tokens with 'repo' scope. Skip if you don't have one — the installer will tell you how to add it later.",
+        "explainer_es": "Crea uno en https://github.com/settings/tokens con scope 'repo'. Sáltalo si no tienes — el installer te dice cómo agregarlo después.",
+        "default": "",
+        "secret": true,
+        "conditional": { "if_answer": "mcps_to_enable", "contains": "github" }
+      },
+      {
+        "id": "enable_stop_hook",
+        "type": "boolean",
+        "prompt": "Play a sound or show a notification when Claude finishes a turn?",
+        "prompt_es": "¿Reproducir un sonido o mostrar una notificación cuando Claude termina un turno?",
+        "explainer": "Useful because Claude can take a minute or two on bigger tasks. The hook tells you it's done so you don't watch the screen.",
+        "explainer_es": "Útil porque Claude puede tomar uno o dos minutos en tareas grandes. El hook te avisa cuando termina para que no mires la pantalla.",
+        "default": true
+      },
+      {
+        "id": "status_line",
+        "type": "single-select",
+        "prompt": "What information should the status line at the bottom of Claude Code show?",
+        "prompt_es": "¿Qué información debe mostrar la barra de estado al fondo de Claude Code?",
+        "explainer": "The status line is the strip at the bottom of the terminal during a Claude session.",
+        "explainer_es": "La barra de estado es la franja al fondo de la terminal durante una sesión de Claude.",
+        "default": "verbose",
+        "options": [
+          { "id": "minimal",  "label": "Minimal — just the folder name",                       "label_es": "Mínima — solo el nombre de la carpeta",                            "description": "Cleanest look.",                                              "description_es": "Look más limpio." },
+          { "id": "balanced", "label": "Balanced — folder + branch + model",                   "label_es": "Balanceada — carpeta + branch + modelo",                           "description": "Typical pro setup.",                                          "description_es": "Setup típico pro." },
+          { "id": "verbose",  "label": "Verbose — folder + branch + tokens used + session $",  "label_es": "Verbosa — carpeta + branch + tokens usados + $ de la sesión",      "description": "Recommended while learning — you see your cost in real time.", "description_es": "Recomendado mientras aprendes — ves el costo en tiempo real." }
+        ]
+      }
+    ],
+    "intermediate": [
+      { "id": "user_name",              "type": "text",          "prompt": "What name should Claude use when addressing you?",                                         "prompt_es": "¿Cómo quieres que Claude se dirija a ti?",                                          "default": "" },
+      { "id": "user_role",              "type": "text",          "prompt": "What is your role? (e.g. 'indie hacker', 'backend engineer', 'data scientist')",          "prompt_es": "¿Cuál es tu rol? (p.ej. 'indie hacker', 'backend engineer', 'data scientist')",     "default": "" },
+      { "id": "communication_language", "type": "text",          "prompt": "What language should Claude reply to you in?",                                            "prompt_es": "¿En qué idioma quieres que Claude te responda?",                                    "default": "English" },
+      { "id": "primary_language",       "type": "text",          "prompt": "Primary programming language(s)?",                                                        "prompt_es": "¿Lenguaje(s) principal(es) de programación?",                                       "default": "" },
+      {
+        "id": "production_or_personal",
+        "type": "single-select",
+        "prompt": "Are you mostly building production work or personal projects?",
+        "prompt_es": "¿Construyes principalmente trabajo de producción o proyectos personales?",
+        "explainer": "Production gets the strict 'what done means' rules. Personal gets a faster, looser default.",
+        "explainer_es": "Producción recibe las reglas estrictas de 'qué significa done'. Personal recibe defaults más rápidos y sueltos.",
+        "default": "production",
+        "options": [
+          { "id": "production", "label": "Production", "label_es": "Producción", "description": "Code that runs for real users / customers.", "description_es": "Código que corre para usuarios o clientes reales." },
+          { "id": "personal",   "label": "Personal",   "label_es": "Personal",   "description": "Side projects, learning, experiments.",       "description_es": "Side projects, aprendizaje, experimentos." }
+        ]
+      },
+      {
+        "id": "monthly_ai_budget",
+        "type": "single-select",
+        "prompt": "Monthly AI tools budget?",
+        "prompt_es": "¿Presupuesto mensual para herramientas de IA?",
+        "default": "under_100",
+        "options": [
+          { "id": "under_20",  "label": "Under $20/mo",  "label_es": "Menos de $20/mes",  "description": "Default to Haiku.", "description_es": "Default a Haiku." },
+          { "id": "under_100", "label": "$20–$100/mo",   "label_es": "$20–$100/mes",      "description": "Default to Sonnet.", "description_es": "Default a Sonnet." },
+          { "id": "over_100",  "label": "Over $100/mo",  "label_es": "Más de $100/mes",   "description": "Default to Opus.",  "description_es": "Default a Opus." }
+        ]
+      },
+      {
+        "id": "permission_profile",
+        "type": "single-select",
+        "prompt": "Permission profile?",
+        "prompt_es": "¿Perfil de permisos?",
+        "default": "balanced",
+        "options": [
+          { "id": "cautious", "label": "Cautious",                 "label_es": "Cauteloso",                 "description": "Ask before every tool call.",                              "description_es": "Pregunta antes de cada herramienta." },
+          { "id": "balanced", "label": "Balanced (recommended)",    "label_es": "Balanceado (recomendado)",  "description": "Auto-approve safe defaults; risky ops still ask.",          "description_es": "Auto-aprueba defaults seguros; ops riesgosas siguen preguntando." },
+          { "id": "expert",   "label": "Expert (auto-approve all)", "label_es": "Experto (auto-aprueba todo)", "description": "Maximum speed, zero prompts. Recommended only if you read every diff.", "description_es": "Máxima velocidad, cero prompts. Solo si lees cada diff." }
+        ]
+      },
+      { "id": "setup_vault", "type": "boolean", "prompt": "Set up a knowledge vault (Obsidian-compatible)?", "prompt_es": "¿Configurar un vault de conocimiento (compatible con Obsidian)?", "default": true },
+      { "id": "vault_path",  "type": "text",    "prompt": "Vault path?",                                     "prompt_es": "¿Ruta del vault?",                                                "default": "~/Documents/claude-vault", "conditional": { "if_answer": "setup_vault", "equals": true } },
+      {
+        "id": "skills_to_install",
+        "type": "multi-select",
+        "prompt": "Which skills to install?",
+        "prompt_es": "¿Qué skills instalar?",
+        "default": ["project-prime", "impeccable", "gh-issues"],
+        "options": [
+          { "id": "project-prime", "label": "project-prime", "label_es": "project-prime", "description": "10-phase framework for new projects/niches.",     "description_es": "Framework de 10 fases para proyectos/nichos nuevos." },
+          { "id": "impeccable",    "label": "impeccable",    "label_es": "impeccable",    "description": "Distinctive frontend UIs.",                       "description_es": "UIs frontend distintivas." },
+          { "id": "ui-ux-pro-max", "label": "ui-ux-pro-max", "label_es": "ui-ux-pro-max", "description": "UI/UX design intelligence.",                       "description_es": "Inteligencia de diseño UI/UX." },
+          { "id": "gh-issues",     "label": "gh-issues",     "label_es": "gh-issues",     "description": "GitHub issue → PR automation.",                    "description_es": "Automatización issue → PR de GitHub." },
+          { "id": "graphify",      "label": "graphify",      "label_es": "graphify",      "description": "Knowledge graph generator.",                       "description_es": "Generador de grafo de conocimiento." }
+        ]
+      },
+      {
+        "id": "mcps_to_enable",
+        "type": "multi-select",
+        "prompt": "Which MCPs to enable?",
+        "prompt_es": "¿Qué MCPs activar?",
+        "default": ["context7", "sequential-thinking"],
+        "options": [
+          { "id": "context7",            "label": "context7",            "label_es": "context7",            "description": "Live library docs. Needs API key.",        "description_es": "Docs vivas de librerías. Necesita API key." },
+          { "id": "sequential-thinking", "label": "sequential-thinking", "label_es": "sequential-thinking", "description": "Step-by-step reasoning.",                  "description_es": "Razonamiento paso-a-paso." },
+          { "id": "github",              "label": "github",              "label_es": "github",              "description": "GitHub API. Needs PAT.",                   "description_es": "API de GitHub. Necesita PAT." }
+        ]
+      },
+      { "id": "context7_api_key", "type": "text",    "prompt": "context7 API key (Enter to skip)",       "prompt_es": "API key de context7 (Enter para saltar)",       "default": "", "secret": true, "conditional": { "if_answer": "mcps_to_enable", "contains": "context7" } },
+      { "id": "github_pat",      "type": "text",    "prompt": "GitHub PAT (Enter to skip)",              "prompt_es": "PAT de GitHub (Enter para saltar)",              "default": "", "secret": true, "conditional": { "if_answer": "mcps_to_enable", "contains": "github" } },
+      { "id": "enable_stop_hook","type": "boolean", "prompt": "Enable Stop hook?",                       "prompt_es": "¿Activar Stop hook?",                            "default": true },
+      {
+        "id": "status_line",
+        "type": "single-select",
+        "prompt": "Status line preset?",
+        "prompt_es": "¿Preset de la barra de estado?",
+        "default": "balanced",
+        "options": [
+          { "id": "minimal",  "label": "Minimal",                          "label_es": "Mínima",                              "description": "Folder only.",                              "description_es": "Solo la carpeta." },
+          { "id": "balanced", "label": "Balanced",                          "label_es": "Balanceada",                          "description": "Folder + branch + model.",                  "description_es": "Carpeta + branch + modelo." },
+          { "id": "verbose",  "label": "Verbose (cost + tokens visible)",   "label_es": "Verbosa (costo + tokens visibles)",   "description": "Folder + branch + tokens + session cost.", "description_es": "Carpeta + branch + tokens + costo de la sesión." }
+        ]
+      }
+    ],
+    "senior": [
+      { "id": "user_name",              "type": "text",          "prompt": "Name?",                                                                                   "prompt_es": "¿Nombre?",                                                                          "default": "" },
+      { "id": "user_role",              "type": "text",          "prompt": "Role?",                                                                                   "prompt_es": "¿Rol?",                                                                              "default": "" },
+      { "id": "primary_language",       "type": "text",          "prompt": "Primary language(s)?",                                                                    "prompt_es": "¿Lenguaje(s) principal(es)?",                                                       "default": "" },
+      { "id": "communication_language", "type": "text",          "prompt": "Reply language?",                                                                          "prompt_es": "¿Idioma de respuesta?",                                                              "default": "English" },
+      {
+        "id": "monthly_ai_budget",
+        "type": "single-select",
+        "prompt": "Cost thresholds — flag-loudly cutoff?",
+        "prompt_es": "Umbrales de costo — ¿corte para flag fuerte?",
+        "default": "over_100",
+        "options": [
+          { "id": "under_100", "label": "$20–$100/mo",   "label_es": "$20–$100/mes",      "description": "Sonnet default.", "description_es": "Default Sonnet." },
+          { "id": "over_100",  "label": "Over $100/mo",  "label_es": "Más de $100/mes",   "description": "Opus default, looser thresholds.", "description_es": "Default Opus, umbrales más sueltos." }
+        ]
+      },
+      {
+        "id": "permission_profile",
+        "type": "single-select",
+        "prompt": "Permission profile?",
+        "prompt_es": "¿Perfil de permisos?",
+        "default": "expert",
+        "options": [
+          { "id": "balanced", "label": "Balanced", "label_es": "Balanceado", "description": "Auto-approve safe defaults.", "description_es": "Auto-aprueba defaults seguros." },
+          { "id": "expert",   "label": "Expert",   "label_es": "Experto",    "description": "Auto-approve all.",            "description_es": "Auto-aprueba todo." }
+        ]
+      },
+      { "id": "setup_vault", "type": "boolean", "prompt": "Set up knowledge vault?", "prompt_es": "¿Configurar vault?", "default": false },
+      { "id": "vault_path",  "type": "text",    "prompt": "Vault path?",              "prompt_es": "¿Ruta del vault?",     "default": "~/Documents/claude-vault", "conditional": { "if_answer": "setup_vault", "equals": true } },
+      {
+        "id": "skills_to_install",
+        "type": "multi-select",
+        "prompt": "Skills?",
+        "prompt_es": "¿Skills?",
+        "default": ["project-prime", "gh-issues", "graphify"],
+        "options": [
+          { "id": "project-prime", "label": "project-prime", "label_es": "project-prime", "description": "10-phase project framework.", "description_es": "Framework de 10 fases para proyectos." },
+          { "id": "impeccable",    "label": "impeccable",    "label_es": "impeccable",    "description": "Frontend UIs.",                "description_es": "UIs frontend." },
+          { "id": "ui-ux-pro-max", "label": "ui-ux-pro-max", "label_es": "ui-ux-pro-max", "description": "UI/UX intelligence.",          "description_es": "Inteligencia UI/UX." },
+          { "id": "gh-issues",     "label": "gh-issues",     "label_es": "gh-issues",     "description": "GitHub automation.",           "description_es": "Automatización GitHub." },
+          { "id": "graphify",      "label": "graphify",      "label_es": "graphify",      "description": "Knowledge graph.",             "description_es": "Grafo de conocimiento." }
+        ]
+      },
+      {
+        "id": "mcps_to_enable",
+        "type": "multi-select",
+        "prompt": "MCPs?",
+        "prompt_es": "¿MCPs?",
+        "default": ["context7", "sequential-thinking", "github"],
+        "options": [
+          { "id": "context7",            "label": "context7",            "label_es": "context7",            "description": "Live docs.",       "description_es": "Docs vivas." },
+          { "id": "sequential-thinking", "label": "sequential-thinking", "label_es": "sequential-thinking", "description": "Reasoning chain.", "description_es": "Cadena de razonamiento." },
+          { "id": "github",              "label": "github",              "label_es": "github",              "description": "GitHub API.",      "description_es": "API de GitHub." }
+        ]
+      },
+      { "id": "context7_api_key", "type": "text",    "prompt": "context7 key (Enter to skip)", "prompt_es": "Key de context7 (Enter para saltar)", "default": "", "secret": true, "conditional": { "if_answer": "mcps_to_enable", "contains": "context7" } },
+      { "id": "github_pat",      "type": "text",    "prompt": "GitHub PAT (Enter to skip)",    "prompt_es": "PAT GitHub (Enter para saltar)",      "default": "", "secret": true, "conditional": { "if_answer": "mcps_to_enable", "contains": "github" } },
+      { "id": "enable_stop_hook","type": "boolean", "prompt": "Stop hook?",                    "prompt_es": "¿Stop hook?",                          "default": true },
+      {
+        "id": "status_line",
+        "type": "single-select",
+        "prompt": "Status line preset?",
+        "prompt_es": "¿Preset de la barra?",
+        "default": "balanced",
+        "options": [
+          { "id": "minimal",  "label": "Minimal",  "label_es": "Mínima",     "description": "Folder only.",                 "description_es": "Solo la carpeta." },
+          { "id": "balanced", "label": "Balanced", "label_es": "Balanceada", "description": "Folder + branch + model.",     "description_es": "Carpeta + branch + modelo." },
+          { "id": "verbose",  "label": "Verbose",  "label_es": "Verbosa",    "description": "+ tokens + session cost.",     "description_es": "+ tokens + costo de la sesión." }
+        ]
+      }
+    ]
+  }
 }

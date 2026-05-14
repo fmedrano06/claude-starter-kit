@@ -37,7 +37,7 @@ if (-not (Test-Path -LiteralPath $WizardJsonPath)) {
 }
 
 $ClaudeHome = Join-Path $env:USERPROFILE '.claude'
-$Marker     = '<!-- claude-starter-kit v0.3.0 -->'
+$Marker     = '<!-- claude-starter-kit v0.4.0 -->'
 
 Write-Host ''
 Write-Host '== Claude Starter Kit installer ==' -ForegroundColor Cyan
@@ -151,15 +151,27 @@ function Read-Boolean {
 }
 
 function Read-MultiSelect {
-    param([string]$Prompt, [array]$Options)
+    param([string]$Prompt, [array]$Options, $Default)
     Write-Host $Prompt
     for ($i = 0; $i -lt $Options.Count; $i++) {
         $opt = $Options[$i]
         $desc = Get-OptionDescription -Option $opt
-        Write-Host ('  {0}. {1} — {2}' -f ($i + 1), $opt.label, $desc)
+        $label = if ($Lang -eq 'es' -and $opt.PSObject.Properties.Name -contains 'label_es' -and $opt.label_es) { $opt.label_es } else { $opt.label }
+        Write-Host ('  {0}. {1} — {2}' -f ($i + 1), $label, $desc)
     }
-    $answer = Read-Host -Prompt $T.multi_blank
-    if ([string]::IsNullOrWhiteSpace($answer)) { return @() }
+    $defaultLabel = ''
+    if ($Default -is [System.Collections.IList] -and $Default.Count -gt 0) {
+        $idxs = @()
+        for ($i = 0; $i -lt $Options.Count; $i++) {
+            if ($Default -contains $Options[$i].id) { $idxs += ($i + 1) }
+        }
+        if ($idxs.Count -gt 0) { $defaultLabel = " [default: $($idxs -join ',')]" }
+    }
+    $answer = Read-Host -Prompt ($T.multi_blank.TrimEnd(': ') + $defaultLabel + ': ')
+    if ([string]::IsNullOrWhiteSpace($answer)) {
+        if ($Default -is [System.Collections.IList]) { return @($Default) }
+        return @()
+    }
     $selected = @()
     foreach ($token in $answer -split ',') {
         $n = 0
@@ -168,6 +180,70 @@ function Read-MultiSelect {
         }
     }
     return $selected
+}
+
+function Read-SingleSelect {
+    param([string]$Prompt, [array]$Options, [string]$Default)
+    Write-Host $Prompt
+    for ($i = 0; $i -lt $Options.Count; $i++) {
+        $opt = $Options[$i]
+        $desc = Get-OptionDescription -Option $opt
+        $label = if ($Lang -eq 'es' -and $opt.PSObject.Properties.Name -contains 'label_es' -and $opt.label_es) { $opt.label_es } else { $opt.label }
+        $marker = if ($opt.id -eq $Default) { '*' } else { ' ' }
+        Write-Host ('  {0}{1}. {2} — {3}' -f $marker, ($i + 1), $label, $desc)
+    }
+    $defaultIdx = ''
+    for ($i = 0; $i -lt $Options.Count; $i++) {
+        if ($Options[$i].id -eq $Default) { $defaultIdx = ($i + 1).ToString(); break }
+    }
+    $promptText = if ($defaultIdx) { "Enter number [default: $defaultIdx]" } else { 'Enter number' }
+    $answer = Read-Host -Prompt $promptText
+    if ([string]::IsNullOrWhiteSpace($answer)) { return $Default }
+    $n = 0
+    if ([int]::TryParse($answer.Trim(), [ref]$n) -and $n -ge 1 -and $n -le $Options.Count) {
+        return $Options[$n - 1].id
+    }
+    return $Default
+}
+
+function Read-Secret {
+    param([string]$Prompt)
+    $secure = Read-Host -Prompt $Prompt -AsSecureString
+    $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+    try {
+        return [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
+    } finally {
+        [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+    }
+}
+
+function Get-Explainer {
+    param($Question)
+    if ($Lang -eq 'es' -and $Question.PSObject.Properties.Name -contains 'explainer_es' -and $Question.explainer_es) {
+        return $Question.explainer_es
+    }
+    if ($Question.PSObject.Properties.Name -contains 'explainer' -and $Question.explainer) {
+        return $Question.explainer
+    }
+    return $null
+}
+
+function Test-Conditional {
+    param($Question, [hashtable]$Answers)
+    if (-not ($Question.PSObject.Properties.Name -contains 'conditional')) { return $true }
+    $cond = $Question.conditional
+    if (-not $cond) { return $true }
+    $key = $cond.if_answer
+    if (-not $Answers.ContainsKey($key)) { return $false }
+    $val = $Answers[$key]
+    if ($cond.PSObject.Properties.Name -contains 'equals') {
+        return ($val -eq $cond.equals)
+    }
+    if ($cond.PSObject.Properties.Name -contains 'contains') {
+        if ($val -is [System.Collections.IList]) { return ($val -contains $cond.contains) }
+        return $false
+    }
+    return $true
 }
 
 function Get-CwdSlug {
@@ -183,6 +259,41 @@ function Render-Template {
         $Content = $Content.Replace('{{' + $k + '}}', [string]$Vars[$k])
     }
     return $Content
+}
+
+function Render-ConditionalBlocks {
+    # Resolves {{IF_LEVEL:beginner}}...{{END}} and
+    # {{IF_LEVEL:intermediate|senior}}...{{END}} against the active level.
+    # Also handles {{IF_LEVEL:setup_vault:true}}...{{END}} — boolean conditional
+    # against any answer key. The first segment after IF_LEVEL: is interpreted
+    # as a level list when it matches known levels, otherwise as <key>:<value>.
+    param([string]$Content, [string]$Level, [hashtable]$Answers)
+    $pattern = '\{\{IF_LEVEL:([^}]+)\}\}([\s\S]*?)\{\{END\}\}'
+    $regex = [regex]::new($pattern)
+    $result = $regex.Replace($Content, {
+        param($m)
+        $spec = $m.Groups[1].Value
+        $body = $m.Groups[2].Value
+        $knownLevels = @('beginner','intermediate','senior')
+        # Form A: level list, e.g. "beginner" or "intermediate|senior"
+        if ($spec -notmatch ':') {
+            $levels = $spec -split '\|'
+            foreach ($lv in $levels) {
+                if ($lv.Trim() -eq $Level) { return $body }
+            }
+            return ''
+        }
+        # Form B: answer key : value, e.g. "setup_vault:true"
+        $parts = $spec -split ':', 2
+        $key = $parts[0].Trim()
+        $expected = $parts[1].Trim()
+        if (-not $Answers.ContainsKey($key)) { return '' }
+        $actual = $Answers[$key]
+        if ($actual -is [bool]) { $actual = if ($actual) { 'true' } else { 'false' } }
+        if ([string]$actual -eq $expected) { return $body }
+        return ''
+    })
+    return $result
 }
 
 function Merge-Settings {
@@ -245,20 +356,42 @@ $wizard = Get-Content -LiteralPath $WizardJsonPath -Raw -Encoding UTF8 | Convert
 # ---------------------------------------------------------------------------
 Write-Host $T.wizard_header -ForegroundColor Cyan
 $answers = @{}
-foreach ($q in $wizard.questions) {
+
+# Step 3a: experience level (drives the rest of the wizard)
+$levelQ = $wizard.level_question
+$lvlExplainer = Get-Explainer -Question $levelQ
+if ($lvlExplainer) { Write-Host ('    ' + $lvlExplainer) -ForegroundColor DarkGray }
+$lvlPrompt = Get-QPrompt -Question $levelQ
+$answers[$levelQ.id] = Read-SingleSelect -Prompt $lvlPrompt -Options $levelQ.options -Default $levelQ.default
+$Level = $answers[$levelQ.id]
+Write-Host ''
+
+# Step 3b: branch-specific questions
+$branchQs = $wizard.branches.$Level
+if (-not $branchQs) { throw "No questions defined for level: $Level" }
+foreach ($q in $branchQs) {
+    if (-not (Test-Conditional -Question $q -Answers $answers)) { continue }
     $prompt = Get-QPrompt -Question $q
+    $explainer = Get-Explainer -Question $q
+    if ($explainer) { Write-Host ('    ' + $explainer) -ForegroundColor DarkGray }
+    $isSecret = ($q.PSObject.Properties.Name -contains 'secret' -and [bool]$q.secret)
     switch ($q.type) {
-        'text'         { $answers[$q.id] = Read-DefaultedLine -Prompt $prompt -Default $q.default }
-        'boolean'      { $answers[$q.id] = Read-Boolean       -Prompt $prompt -Default ([bool]$q.default) }
-        'multi-select' { $answers[$q.id] = Read-MultiSelect   -Prompt $prompt -Options $q.options }
-        'single-select' {
-            $opts = $q.options | ForEach-Object { $_.id }
-            $answers[$q.id] = Read-DefaultedLine -Prompt ($prompt + ' (' + ($opts -join '|') + ')') -Default $q.default
+        'text' {
+            if ($isSecret) {
+                $val = Read-Secret -Prompt $prompt
+                if ([string]::IsNullOrEmpty($val)) { $val = [string]$q.default }
+                $answers[$q.id] = $val
+            } else {
+                $answers[$q.id] = Read-DefaultedLine -Prompt $prompt -Default ([string]$q.default)
+            }
         }
+        'boolean'       { $answers[$q.id] = Read-Boolean      -Prompt $prompt -Default ([bool]$q.default) }
+        'multi-select'  { $answers[$q.id] = Read-MultiSelect  -Prompt $prompt -Options $q.options -Default $q.default }
+        'single-select' { $answers[$q.id] = Read-SingleSelect -Prompt $prompt -Options $q.options -Default ([string]$q.default) }
         default { throw ($T.unknown_qtype + ": $($q.type) (id $($q.id))") }
     }
+    Write-Host ''
 }
-Write-Host ''
 
 # ---------------------------------------------------------------------------
 # Step 4: idempotency check + backup
@@ -310,13 +443,52 @@ try {
         $tpl = Get-Content -LiteralPath $templatePath -Raw -Encoding UTF8
         $cwdSlug = Get-CwdSlug
         $memoryDir = Join-Path $ClaudeHome ("projects\$cwdSlug\memory")
-        $rendered = Render-Template -Content $tpl -Vars @{
-            USER_NAME              = $answers.user_name
-            USER_ROLE              = $answers.user_role
-            PRIMARY_LANGUAGE       = $answers.primary_language
-            COMMUNICATION_LANGUAGE = $answers.communication_language
+
+        # Derive variables that vary by branch / by answer
+        $budget = if ($answers.ContainsKey('monthly_ai_budget')) { [string]$answers.monthly_ai_budget } else { 'under_100' }
+        $defaultModel = switch ($budget) {
+            'none'      { 'haiku' }
+            'under_20'  { 'haiku' }
+            'under_100' { 'sonnet' }
+            'over_100'  { 'opus' }
+            default     { 'sonnet' }
+        }
+        $costFlagThreshold = switch ($budget) {
+            'none'      { '5' }
+            'under_20'  { '10' }
+            'under_100' { '25' }
+            'over_100'  { '100' }
+            default     { '25' }
+        }
+        $vaultPath = if ($answers.ContainsKey('vault_path') -and -not [string]::IsNullOrWhiteSpace([string]$answers.vault_path)) {
+            [string]$answers.vault_path
+        } else {
+            '(none)'
+        }
+        $primaryGoal = if ($answers.ContainsKey('primary_goal')) { [string]$answers.primary_goal } else { '' }
+        $primaryGoalHuman = switch ($primaryGoal) {
+            'learn_to_code'     { 'learn to code' }
+            'personal_projects' { 'build personal projects' }
+            'work_or_business'  { 'do work or build a business' }
+            default             { 'work with Claude Code' }
+        }
+
+        # Step 5a: resolve {{IF_LEVEL:...}} conditional blocks
+        $resolved = Render-ConditionalBlocks -Content $tpl -Level $Level -Answers $answers
+
+        # Step 5b: substitute placeholders
+        $rendered = Render-Template -Content $resolved -Vars @{
+            USER_NAME              = [string]$answers.user_name
+            USER_ROLE              = if ($answers.ContainsKey('user_role'))         { [string]$answers.user_role }         else { '' }
+            PRIMARY_LANGUAGE       = if ($answers.ContainsKey('primary_language'))  { [string]$answers.primary_language }  else { 'unsure' }
+            COMMUNICATION_LANGUAGE = if ($answers.ContainsKey('communication_language')) { [string]$answers.communication_language } else { 'English' }
             TODAY                  = (Get-Date -Format 'yyyy-MM-dd')
             MEMORY_DIR             = $memoryDir
+            LEVEL                  = $Level
+            DEFAULT_MODEL          = $defaultModel
+            COST_FLAG_THRESHOLD    = $costFlagThreshold
+            VAULT_PATH             = $vaultPath
+            PRIMARY_GOAL_HUMAN     = $primaryGoalHuman
         }
         if (-not $rendered.StartsWith($Marker)) {
             $rendered = "$Marker`n$rendered"
@@ -368,6 +540,61 @@ try {
             $existingHash = Get-Content -LiteralPath $settingsDstPath -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable
         }
         $merged = Merge-Settings -Existing $existingHash -Template $tplHash -EnabledMcps @($answers.mcps_to_enable)
+
+        # v0.4.0 — default model from budget
+        $merged['model'] = $defaultModel
+
+        # v0.4.0 — permission profile
+        $permProfile = if ($answers.ContainsKey('permission_profile')) { [string]$answers.permission_profile } else { 'balanced' }
+        switch ($permProfile) {
+            'cautious' {
+                $merged['skipAutoPermissionPrompt']      = $false
+                $merged['skipDangerousModePermissionPrompt'] = $false
+            }
+            'balanced' {
+                $merged['skipAutoPermissionPrompt']      = $true
+                $merged['skipDangerousModePermissionPrompt'] = $false
+            }
+            'expert' {
+                $merged['skipAutoPermissionPrompt']      = $true
+                $merged['skipDangerousModePermissionPrompt'] = $true
+            }
+        }
+
+        # v0.4.0 — status line preset
+        $slPreset = if ($answers.ContainsKey('status_line')) { [string]$answers.status_line } else { 'balanced' }
+        $slScript = switch ($slPreset) {
+            'minimal'  { 'bash ~/.claude/statusline-command.sh minimal' }
+            'balanced' { 'bash ~/.claude/statusline-command.sh balanced' }
+            'verbose'  { 'bash ~/.claude/statusline-command.sh verbose' }
+            default    { 'bash ~/.claude/statusline-command.sh balanced' }
+        }
+        if (-not $merged.ContainsKey('statusLine')) { $merged['statusLine'] = @{} }
+        $merged['statusLine']['type'] = 'command'
+        $merged['statusLine']['command'] = $slScript
+
+        # v0.4.0 — wire MCP API keys into env (only when user supplied)
+        if ($merged.ContainsKey('mcpServers')) {
+            if ($merged['mcpServers'].ContainsKey('context7')) {
+                $k = if ($answers.ContainsKey('context7_api_key')) { [string]$answers.context7_api_key } else { '' }
+                if ($k) {
+                    if (-not $merged['mcpServers']['context7'].ContainsKey('headers')) {
+                        $merged['mcpServers']['context7']['headers'] = @{}
+                    }
+                    $merged['mcpServers']['context7']['headers']['CONTEXT7_API_KEY'] = $k
+                }
+            }
+            if ($merged['mcpServers'].ContainsKey('github')) {
+                $k = if ($answers.ContainsKey('github_pat')) { [string]$answers.github_pat } else { '' }
+                if ($k) {
+                    if (-not $merged['mcpServers']['github'].ContainsKey('env')) {
+                        $merged['mcpServers']['github']['env'] = @{}
+                    }
+                    $merged['mcpServers']['github']['env']['GITHUB_PERSONAL_ACCESS_TOKEN'] = $k
+                }
+            }
+        }
+
         # Drop Stop hook entirely if user opted out
         if (-not [bool]$answers.enable_stop_hook -and $merged.ContainsKey('hooks')) {
             if ($merged['hooks'].ContainsKey('Stop')) { $merged['hooks'].Remove('Stop') | Out-Null }
@@ -414,6 +641,58 @@ try {
             Track-Write $hookDst
         } else {
             Write-Host "  SKIP    Stop hook (template not present yet)" -ForegroundColor DarkYellow
+        }
+    }
+
+    # -----------------------------------------------------------------------
+    # Step 9.5 (v0.4.0): knowledge vault scaffold
+    # -----------------------------------------------------------------------
+    $vaultPathFinal = $null
+    if ($answers.ContainsKey('setup_vault') -and [bool]$answers.setup_vault) {
+        $vaultPathRaw = if ($answers.ContainsKey('vault_path') -and -not [string]::IsNullOrWhiteSpace([string]$answers.vault_path)) {
+            [string]$answers.vault_path
+        } else {
+            '~/Documents/claude-vault'
+        }
+        # Expand ~ to $env:USERPROFILE
+        $vaultPathFinal = $vaultPathRaw.Replace('~', $env:USERPROFILE).Replace('/', '\')
+        Write-Action 'VAULT' $vaultPathFinal
+        Invoke-FsAction {
+            foreach ($sub in @('raw','wiki','outputs','projects','_daily','_session-handoffs')) {
+                New-Item -ItemType Directory -Path (Join-Path $vaultPathFinal $sub) -Force | Out-Null
+            }
+            $vaultClaudeMd = @"
+<!-- claude-starter-kit vault — generated $(Get-Date -Format 'yyyy-MM-dd') -->
+
+# Knowledge vault — local rules
+
+This folder is a knowledge vault. It uses the Karpathy 3-folder layout
+plus a few utility folders:
+
+- ``raw/`` — unprocessed notes, dumps, transcripts, paste-ins.
+- ``wiki/`` — distilled, durable knowledge written for future-self.
+- ``outputs/`` — finished artifacts produced from raw + wiki.
+- ``projects/`` — one folder per active project.
+- ``_daily/`` — daily notes, format ``YYYY-MM-DD.md``.
+- ``_session-handoffs/`` — Claude session handoffs.
+
+When the user asks you to "save a note" or "remember this for later"
+without specifying where, default to:
+
+- Quick capture, in-progress thinking → ``raw/YYYY-MM-DD-<slug>.md``
+- A reusable lesson, pattern, or reference → ``wiki/<topic>.md``
+- A finished thing → ``outputs/<project>/<slug>.<ext>``
+
+Project-specific CLAUDE.md files in ``projects/<name>/`` override these
+defaults for that project.
+"@
+            Set-Content -LiteralPath (Join-Path $vaultPathFinal 'CLAUDE.md') -Value $vaultClaudeMd -Encoding UTF8
+            $today = Get-Date -Format 'yyyy-MM-dd'
+            $dailySeed = "# $today`n`n## Today's intent`n`n## Notes`n`n## Tomorrow`n"
+            $dailyPath = Join-Path $vaultPathFinal ("_daily\$today.md")
+            if (-not (Test-Path -LiteralPath $dailyPath)) {
+                Set-Content -LiteralPath $dailyPath -Value $dailySeed -Encoding UTF8
+            }
         }
     }
 

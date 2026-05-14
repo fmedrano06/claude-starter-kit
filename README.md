@@ -29,8 +29,12 @@ clarifying questions in plain English along the way.
 2. Open Claude Code in the cloned directory.
 3. Say: **"read SETUP.md and install the starter kit"**.
 
-Claude will walk through the wizard, write the files, and tell you when
-you can restart your session to pick up the new configuration.
+Claude will walk through the **adaptive wizard** (it first asks whether
+you're a beginner, intermediate, or senior user, then asks 6–14 follow-up
+questions tuned to that level). The resulting `CLAUDE.md`, default model,
+permission profile, status-line preset, and optional Obsidian-compatible
+knowledge vault are all shaped by your answers. Restart your session
+once Claude finishes to pick up the new configuration.
 
 ### Path B — Windows, no Claude Code yet
 
@@ -111,4 +115,4 @@ MIT. See [`LICENSE`](./LICENSE).
 
 ## Versioning
 
-See [`CHANGELOG.md`](./CHANGELOG.md). The current version is **0.3.0**.
+See [`CHANGELOG.md`](./CHANGELOG.md). The current version is **0.4.0**.
