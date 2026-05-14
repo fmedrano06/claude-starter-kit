@@ -1,60 +1,70 @@
 {
-  "version": "1.0",
+  "version": "1.1",
   "questions": [
     {
       "id": "user_name",
       "type": "text",
       "prompt": "What name should Claude use when addressing you?",
+      "prompt_es": "¿Cómo quieres que Claude se dirija a ti?",
       "default": ""
     },
     {
       "id": "user_role",
       "type": "text",
       "prompt": "What is your role? (e.g. 'indie hacker', 'backend engineer', 'data scientist', 'student')",
+      "prompt_es": "¿Cuál es tu rol? (p.ej. 'indie hacker', 'backend engineer', 'data scientist', 'estudiante')",
       "default": ""
     },
     {
       "id": "primary_language",
       "type": "text",
       "prompt": "What are your primary programming languages? (e.g. 'TypeScript + Python', 'Go', 'Rust + C++')",
+      "prompt_es": "¿Cuáles son tus lenguajes principales de programación? (p.ej. 'TypeScript + Python', 'Go', 'Rust + C++')",
       "default": ""
     },
     {
       "id": "communication_language",
       "type": "text",
       "prompt": "What language should Claude reply to you in? (English is the default; type any human language to override)",
+      "prompt_es": "¿En qué idioma quieres que Claude te responda? (Por defecto inglés; escribe cualquier idioma humano para cambiarlo)",
       "default": "English"
     },
     {
       "id": "skills_to_install",
       "type": "multi-select",
       "prompt": "Which skills should be installed into ~/.claude/skills/? (Select any combination; all are optional.)",
+      "prompt_es": "¿Qué skills se instalan en ~/.claude/skills/? (Cualquier combinación; todos son opcionales.)",
       "default": [],
       "options": [
         {
           "id": "gh-issues",
           "label": "gh-issues",
-          "description": "Fetch GitHub issues, spawn sub-agents to implement fixes, open PRs, and monitor review comments."
+          "description": "Fetch GitHub issues, spawn sub-agents to implement fixes, open PRs, and monitor review comments.",
+          "description_es": "Trae issues de GitHub, lanza sub-agentes para implementar fixes, abre PRs, y monitorea comentarios de review."
         },
         {
           "id": "project-prime",
           "label": "project-prime",
-          "description": "Mandatory 10-phase execution framework with binary exit gates for new projects, niches, or channels."
+          "description": "Mandatory 10-phase execution framework with binary exit gates for new projects, niches, or channels.",
+          "description_es": "Framework obligatorio de 10 fases con gates binarios para proyectos nuevos, nichos o canales."
         },
         {
           "id": "graphify",
           "label": "graphify",
-          "description": "Turn any input (code, docs, papers, images) into a clustered knowledge graph with HTML + JSON + audit report."
+          "description": "Turn any input (code, docs, papers, images) into a clustered knowledge graph with HTML + JSON + audit report.",
+          "description_es": "Convierte cualquier input (código, docs, papers, imágenes) en un grafo de conocimiento clusterizado con HTML + JSON + reporte de auditoría."
         },
         {
           "id": "impeccable",
           "label": "impeccable",
-          "description": "Build distinctive, production-grade frontend interfaces that avoid generic AI aesthetics."
+          "description": "Build distinctive, production-grade frontend interfaces that avoid generic AI aesthetics.",
+          "description_es": "Construye interfaces frontend distintivas y de calidad producción que evitan la estética genérica de IA."
         },
         {
           "id": "ui-ux-pro-max",
           "label": "ui-ux-pro-max",
-          "description": "UI/UX design intelligence: styles, palettes, font pairings, charts, and stack-aware component generation."
+          "description": "UI/UX design intelligence: styles, palettes, font pairings, charts, and stack-aware component generation.",
+          "description_es": "Inteligencia de diseño UI/UX: estilos, paletas, combinaciones tipográficas, charts y generación de componentes consciente del stack."
         }
       ]
     },
@@ -62,23 +72,27 @@
       "id": "mcps_to_enable",
       "type": "multi-select",
       "prompt": "Which MCP servers should be enabled in ~/.claude/settings.json?",
+      "prompt_es": "¿Qué servidores MCP se activan en ~/.claude/settings.json?",
       "default": [],
       "_todo": "catalogs-eng may expand this list to match the final mcps.md catalog; team-lead reconciles at integration.",
       "options": [
         {
           "id": "context7",
           "label": "context7",
-          "description": "Fetches up-to-date documentation for libraries, frameworks, SDKs, and CLI tools."
+          "description": "Fetches up-to-date documentation for libraries, frameworks, SDKs, and CLI tools.",
+          "description_es": "Trae documentación actualizada de librerías, frameworks, SDKs y herramientas CLI."
         },
         {
           "id": "sequential-thinking",
           "label": "sequential-thinking",
-          "description": "Structured step-by-step reasoning helper for multi-step problems."
+          "description": "Structured step-by-step reasoning helper for multi-step problems.",
+          "description_es": "Ayudante de razonamiento estructurado paso a paso para problemas multi-paso."
         },
         {
           "id": "github",
           "label": "github",
-          "description": "Read and write access to GitHub issues, PRs, and repository content."
+          "description": "Read and write access to GitHub issues, PRs, and repository content.",
+          "description_es": "Acceso de lectura y escritura a issues, PRs y contenido de repos de GitHub."
         }
       ]
     },
@@ -86,12 +100,14 @@
       "id": "enable_stop_hook",
       "type": "boolean",
       "prompt": "Enable the Stop hook that plays a sound / shows a desktop notification when Claude finishes a turn?",
+      "prompt_es": "¿Activar el Stop hook que reproduce un sonido / muestra una notificación de escritorio cuando Claude termina un turno?",
       "default": true
     },
     {
       "id": "show_onboarding_after_install",
       "type": "boolean",
       "prompt": "After install, print a path to a guided onboarding that helps you set up an Obsidian knowledge vault and your first project?",
+      "prompt_es": "Después del install, ¿imprimir la ruta a un onboarding guiado que te ayuda a montar un vault de conocimiento en Obsidian y tu primer proyecto?",
       "default": true
     }
   ]

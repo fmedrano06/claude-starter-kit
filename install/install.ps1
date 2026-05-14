@@ -37,7 +37,7 @@ if (-not (Test-Path -LiteralPath $WizardJsonPath)) {
 }
 
 $ClaudeHome = Join-Path $env:USERPROFILE '.claude'
-$Marker     = '<!-- claude-starter-kit v0.2.1 -->'
+$Marker     = '<!-- claude-starter-kit v0.3.0 -->'
 
 Write-Host ''
 Write-Host '== Claude Starter Kit installer ==' -ForegroundColor Cyan
@@ -45,6 +45,80 @@ Write-Host "Repo:        $RepoRoot"
 Write-Host "Claude home: $ClaudeHome"
 if ($DryRun) { Write-Host 'Mode:        DRY RUN (no files will be written)' -ForegroundColor Yellow }
 Write-Host ''
+
+# ---------------------------------------------------------------------------
+# Step 0: choose language for the wizard prompts
+# ---------------------------------------------------------------------------
+$langInput = Read-Host -Prompt 'Language / Idioma [EN/es]'
+$Lang = if ($langInput -match '^(es|ES|spanish|español|espanol)$') { 'es' } else { 'en' }
+Write-Host ''
+$T = if ($Lang -eq 'es') {
+    @{
+        wizard_header   = '-- Asistente --'
+        unknown_qtype   = 'Tipo de pregunta desconocido'
+        reinstall_q     = 'El starter kit ya está instalado. ¿Reinstalar?'
+        aborted         = 'Cancelado, no se cambió nada.'
+        install_done    = '== Instalación completa =='
+        skills_label    = '  Skills:     '
+        mcps_label      = '  MCPs:       '
+        hook_label      = '  Stop hook:  '
+        backup_label    = '  Backup:     '
+        guide_label     = '  Guide:      '
+        open_browser_q  = '¿Abrir la guía en tu navegador?'
+        ready_banner    = '  ¿Listo para tu primera sesión guiada?'
+        ready_step1     = '  1. Instala Obsidian (gratis) desde https://obsidian.md'
+        ready_step2     = '  2. Elige una carpeta para tu vault de conocimiento. Ábrela en Obsidian.'
+        ready_step3     = '  3. Desde una terminal, corre:'
+        ready_step3a    = '       cd <tu-carpeta-vault>'
+        ready_step3b    = '       claude'
+        ready_step4     = '  4. Pega esto como tu primer mensaje a Claude:'
+        ready_step4a    = '       read ~/.claude/onboarding/first-session-prompt.md and walk me through it'
+        ready_read_self = '  O léelo tú mismo en:'
+        failed_prefix   = 'FALLÓ: '
+        restoring       = 'Restaurando backup...'
+        multi_blank     = 'Ingresa números separados por coma (o vacío para ninguno)'
+    }
+} else {
+    @{
+        wizard_header   = '-- Wizard --'
+        unknown_qtype   = 'Unknown question type'
+        reinstall_q     = 'Starter kit is already installed. Re-install?'
+        aborted         = 'Aborted, nothing changed.'
+        install_done    = '== Install complete =='
+        skills_label    = '  Skills:      '
+        mcps_label      = '  MCPs:        '
+        hook_label      = '  Stop hook:   '
+        backup_label    = '  Backup:      '
+        guide_label     = '  Guide:       '
+        open_browser_q  = 'Open the guide in your default browser?'
+        ready_banner    = '  Ready for your first guided session?'
+        ready_step1     = '  1. Install Obsidian (free) from https://obsidian.md'
+        ready_step2     = '  2. Pick a folder to be your knowledge vault. Open it in Obsidian.'
+        ready_step3     = '  3. From a terminal, run:'
+        ready_step3a    = '       cd <your-vault-folder>'
+        ready_step3b    = '       claude'
+        ready_step4     = '  4. Paste this as your first message to Claude:'
+        ready_step4a    = '       read ~/.claude/onboarding/first-session-prompt.md and walk me through it'
+        ready_read_self = '  Or read it yourself at:'
+        failed_prefix   = 'FAILED: '
+        restoring       = 'Restoring backup...'
+        multi_blank     = 'Enter comma-separated numbers (or blank for none)'
+    }
+}
+function Get-QPrompt {
+    param($Question)
+    if ($Lang -eq 'es' -and $Question.PSObject.Properties.Name -contains 'prompt_es' -and $Question.prompt_es) {
+        return $Question.prompt_es
+    }
+    return $Question.prompt
+}
+function Get-OptionDescription {
+    param($Option)
+    if ($Lang -eq 'es' -and $Option.PSObject.Properties.Name -contains 'description_es' -and $Option.description_es) {
+        return $Option.description_es
+    }
+    return $Option.description
+}
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -81,9 +155,10 @@ function Read-MultiSelect {
     Write-Host $Prompt
     for ($i = 0; $i -lt $Options.Count; $i++) {
         $opt = $Options[$i]
-        Write-Host ('  {0}. {1} — {2}' -f ($i + 1), $opt.label, $opt.description)
+        $desc = Get-OptionDescription -Option $opt
+        Write-Host ('  {0}. {1} — {2}' -f ($i + 1), $opt.label, $desc)
     }
-    $answer = Read-Host -Prompt 'Enter comma-separated numbers (or blank for none)'
+    $answer = Read-Host -Prompt $T.multi_blank
     if ([string]::IsNullOrWhiteSpace($answer)) { return @() }
     $selected = @()
     foreach ($token in $answer -split ',') {
@@ -168,18 +243,19 @@ $wizard = Get-Content -LiteralPath $WizardJsonPath -Raw -Encoding UTF8 | Convert
 # ---------------------------------------------------------------------------
 # Step 3: prompt
 # ---------------------------------------------------------------------------
-Write-Host '-- Wizard --' -ForegroundColor Cyan
+Write-Host $T.wizard_header -ForegroundColor Cyan
 $answers = @{}
 foreach ($q in $wizard.questions) {
+    $prompt = Get-QPrompt -Question $q
     switch ($q.type) {
-        'text'         { $answers[$q.id] = Read-DefaultedLine -Prompt $q.prompt -Default $q.default }
-        'boolean'      { $answers[$q.id] = Read-Boolean       -Prompt $q.prompt -Default ([bool]$q.default) }
-        'multi-select' { $answers[$q.id] = Read-MultiSelect   -Prompt $q.prompt -Options $q.options }
+        'text'         { $answers[$q.id] = Read-DefaultedLine -Prompt $prompt -Default $q.default }
+        'boolean'      { $answers[$q.id] = Read-Boolean       -Prompt $prompt -Default ([bool]$q.default) }
+        'multi-select' { $answers[$q.id] = Read-MultiSelect   -Prompt $prompt -Options $q.options }
         'single-select' {
             $opts = $q.options | ForEach-Object { $_.id }
-            $answers[$q.id] = Read-DefaultedLine -Prompt ($q.prompt + ' (' + ($opts -join '|') + ')') -Default $q.default
+            $answers[$q.id] = Read-DefaultedLine -Prompt ($prompt + ' (' + ($opts -join '|') + ')') -Default $q.default
         }
-        default { throw "Unknown question type: $($q.type) for id $($q.id)" }
+        default { throw ($T.unknown_qtype + ": $($q.type) (id $($q.id))") }
     }
 }
 Write-Host ''
@@ -193,8 +269,8 @@ $BackupPath   = $null
 if (Test-Path -LiteralPath $claudeMdPath) {
     $existingContent = Get-Content -LiteralPath $claudeMdPath -Raw -Encoding UTF8
     if ($existingContent.StartsWith($Marker) -and -not $Force) {
-        $ok = Read-Boolean -Prompt 'Starter kit is already installed. Re-install?' -Default $false
-        if (-not $ok) { Write-Host 'Aborted, nothing changed.'; exit 0 }
+        $ok = Read-Boolean -Prompt $T.reinstall_q -Default $false
+        if (-not $ok) { Write-Host $T.aborted; exit 0 }
     }
     $stamp = (Get-Date -Format 'yyyy-MM-ddTHH-mm-ss')
     $BackupPath = Join-Path $ClaudeHome (".backup-$stamp")
@@ -218,7 +294,7 @@ function Track-Write {
 
 function Restore-Backup {
     if ($null -eq $BackupPath -or -not (Test-Path -LiteralPath $BackupPath)) { return }
-    Write-Host 'Restoring backup...' -ForegroundColor Yellow
+    Write-Host $T.restoring -ForegroundColor Yellow
     foreach ($p in $createdPaths) {
         if (Test-Path -LiteralPath $p) { Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue }
     }
@@ -345,16 +421,16 @@ try {
     # Step 10: summary
     # -----------------------------------------------------------------------
     Write-Host ''
-    Write-Host '== Install complete ==' -ForegroundColor Cyan
+    Write-Host $T.install_done -ForegroundColor Cyan
     Write-Host "  CLAUDE.md:   $claudeMdPath"
-    Write-Host ("  Skills:      " + (@($answers.skills_to_install) -join ', '))
-    Write-Host ("  MCPs:        " + (@($answers.mcps_to_enable) -join ', '))
-    Write-Host ("  Stop hook:   " + ([bool]$answers.enable_stop_hook))
-    if ($BackupPath) { Write-Host "  Backup:      $BackupPath" }
+    Write-Host ($T.skills_label + (@($answers.skills_to_install) -join ', '))
+    Write-Host ($T.mcps_label   + (@($answers.mcps_to_enable) -join ', '))
+    Write-Host ($T.hook_label   + ([bool]$answers.enable_stop_hook))
+    if ($BackupPath) { Write-Host ($T.backup_label + $BackupPath) }
     $guidePath = Join-Path $RepoRoot 'guide\index.html'
-    Write-Host "  Guide:       $guidePath"
+    Write-Host ($T.guide_label + $guidePath)
     if (-not $DryRun -and (Test-Path -LiteralPath $guidePath)) {
-        $open = Read-Boolean -Prompt 'Open the guide in your default browser?' -Default $true
+        $open = Read-Boolean -Prompt $T.open_browser_q -Default $true
         if ($open) { Start-Process $guidePath }
     }
 
@@ -379,18 +455,18 @@ try {
 
             Write-Host ''
             Write-Host '==============================================================' -ForegroundColor Cyan
-            Write-Host '  Ready for your first guided session?' -ForegroundColor Cyan
+            Write-Host $T.ready_banner -ForegroundColor Cyan
             Write-Host '==============================================================' -ForegroundColor Cyan
             Write-Host ''
-            Write-Host '  1. Install Obsidian (free) from https://obsidian.md'
-            Write-Host '  2. Pick a folder to be your knowledge vault. Open it in Obsidian.'
-            Write-Host '  3. From a terminal, run:'
-            Write-Host '       cd <your-vault-folder>'
-            Write-Host '       claude'
-            Write-Host '  4. Paste this as your first message to Claude:'
-            Write-Host '       read ~/.claude/onboarding/first-session-prompt.md and walk me through it'
+            Write-Host $T.ready_step1
+            Write-Host $T.ready_step2
+            Write-Host $T.ready_step3
+            Write-Host $T.ready_step3a
+            Write-Host $T.ready_step3b
+            Write-Host $T.ready_step4
+            Write-Host $T.ready_step4a
             Write-Host ''
-            Write-Host '  Or read it yourself at:'
+            Write-Host $T.ready_read_self
             Write-Host "    $onboardingDst"
             Write-Host ''
         } else {
@@ -400,7 +476,7 @@ try {
 }
 catch {
     Write-Host ''
-    Write-Host "FAILED: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host ($T.failed_prefix + $_.Exception.Message) -ForegroundColor Red
     if ($BackupPath -and -not $DryRun) { Restore-Backup }
     exit 1
 }

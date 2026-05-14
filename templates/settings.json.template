@@ -1,5 +1,5 @@
 {
-  "_comment": "claude-starter-kit v0.2.1 settings template. Drop into ~/.claude/settings.json (or merge with your existing one). Edit anything that doesn't fit. The installer rewrites the Stop hook command per OS.",
+  "_comment": "claude-starter-kit v0.3.0 settings template. Drop into ~/.claude/settings.json (or merge with your existing one). Edit anything that doesn't fit. The installer rewrites the Stop hook command per OS.",
 
   "skillListingBudgetFraction": 0.03,
   "effortLevel": "high",

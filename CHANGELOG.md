@@ -4,6 +4,28 @@ All notable changes to this project are documented here. The format is
 based on [Keep a Changelog](https://keepachangelog.com/), and this
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] — 2026-05-13
+
+### Added
+- **Bilingual installer (Spanish + English).** First wizard prompt asks
+  for language. Every question, option description, summary, and
+  "ready for your first guided session" banner is now localized in
+  both `install.ps1` and `install.sh`. Source of truth is
+  `install/lib/wizard-questions.json`, which now carries `prompt_es`
+  and `description_es` alongside the originals.
+- **`GETTING-STARTED.md` / `GETTING-STARTED.es.md`** — zero-technical
+  step-by-step for users who have never opened a terminal or used git.
+  Linked prominently from both READMEs.
+- **`README.es.md`** — Spanish mirror of the README with a language
+  switcher at the top of both files.
+
+### Changed
+- `README.md`: added language switcher and a callout pointing
+  newcomers to `GETTING-STARTED.md` before the install instructions.
+- `wizard-questions.json` schema bumped to `1.1` to accommodate the
+  `prompt_es` / `description_es` fields. Old `1.0` consumers still
+  work because the new fields are optional.
+
 ## [0.2.1] — 2026-05-13
 
 ### Fixed
@@ -87,6 +109,7 @@ Initial public release.
   extended documentation.
 - `README.md`, `LICENSE` (MIT), `.gitignore`.
 
+[0.3.0]: https://github.com/fmedrano06/claude-starter-kit/releases/tag/v0.3.0
 [0.2.1]: https://github.com/fmedrano06/claude-starter-kit/releases/tag/v0.2.1
 [0.2.0]: https://github.com/fmedrano06/claude-starter-kit/releases/tag/v0.2.0
 [0.1.0]: https://github.com/fmedrano06/claude-starter-kit/releases/tag/v0.1.0

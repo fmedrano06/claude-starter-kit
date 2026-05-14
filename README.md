@@ -1,5 +1,11 @@
 # Claude Code Starter Kit
 
+> Read in: **English** · [Español](README.es.md)
+>
+> 👋 **New to terminals or git?** Start with
+> [`GETTING-STARTED.md`](GETTING-STARTED.md) — a 10-minute walkthrough
+> that assumes nothing.
+
 A starter kit that gets a new Claude Code user from a fresh install to a
 senior-level setup in about five minutes — opinionated defaults, a
 curated plugin and MCP catalog, five high-leverage skills, a persistent
@@ -105,4 +111,4 @@ MIT. See [`LICENSE`](./LICENSE).
 
 ## Versioning
 
-See [`CHANGELOG.md`](./CHANGELOG.md). The current version is **0.2.1**.
+See [`CHANGELOG.md`](./CHANGELOG.md). The current version is **0.3.0**.

@@ -39,7 +39,7 @@ if [[ ! -f "$WIZARD_JSON" ]]; then
 fi
 
 CLAUDE_HOME="${HOME}/.claude"
-MARKER='<!-- claude-starter-kit v0.2.1 -->'
+MARKER='<!-- claude-starter-kit v0.3.0 -->'
 
 # ---------------------------------------------------------------------------
 # Dependencies
@@ -66,6 +66,60 @@ echo "Repo:        $REPO_ROOT"
 echo "Claude home: $CLAUDE_HOME"
 [[ $DRY_RUN -eq 1 ]] && echo "Mode:        DRY RUN (no files will be written)"
 echo
+
+# ---------------------------------------------------------------------------
+# Step 0: choose wizard language
+# ---------------------------------------------------------------------------
+read -r -p "Language / Idioma [EN/es]: " lang_input || true
+case "${lang_input,,}" in
+    es|spanish|español|espanol) LANG_CODE="es" ;;
+    *) LANG_CODE="en" ;;
+esac
+echo
+
+if [[ "$LANG_CODE" == "es" ]]; then
+    T_WIZARD_HEADER="-- Asistente --"
+    T_REINSTALL_Q="El starter kit ya está instalado. ¿Reinstalar?"
+    T_ABORTED="Cancelado, no se cambió nada."
+    T_INSTALL_DONE="== Instalación completa =="
+    T_SKILLS_LABEL="  Skills:     "
+    T_MCPS_LABEL="  MCPs:       "
+    T_HOOK_LABEL="  Stop hook:  "
+    T_BACKUP_LABEL="  Backup:     "
+    T_GUIDE_LABEL="  Guide:      "
+    T_OPEN_BROWSER_Q="¿Abrir la guía en tu navegador?"
+    T_READY_BANNER="  ¿Listo para tu primera sesión guiada?"
+    T_READY_STEP1="  1. Instala Obsidian (gratis) desde https://obsidian.md"
+    T_READY_STEP2="  2. Elige una carpeta para tu vault de conocimiento. Ábrela en Obsidian."
+    T_READY_STEP3="  3. Desde una terminal, corre:"
+    T_READY_STEP3A="       cd <tu-carpeta-vault>"
+    T_READY_STEP3B="       claude"
+    T_READY_STEP4="  4. Pega esto como tu primer mensaje a Claude:"
+    T_READY_STEP4A="       read ~/.claude/onboarding/first-session-prompt.md and walk me through it"
+    T_READY_READ_SELF="  O léelo tú mismo en:"
+    T_MULTI_BLANK="Ingresa números separados por coma (o vacío para ninguno): "
+else
+    T_WIZARD_HEADER="-- Wizard --"
+    T_REINSTALL_Q="Starter kit is already installed. Re-install?"
+    T_ABORTED="Aborted, nothing changed."
+    T_INSTALL_DONE="== Install complete =="
+    T_SKILLS_LABEL="  Skills:      "
+    T_MCPS_LABEL="  MCPs:        "
+    T_HOOK_LABEL="  Stop hook:   "
+    T_BACKUP_LABEL="  Backup:      "
+    T_GUIDE_LABEL="  Guide:       "
+    T_OPEN_BROWSER_Q="Open the guide in your default browser?"
+    T_READY_BANNER="  Ready for your first guided session?"
+    T_READY_STEP1="  1. Install Obsidian (free) from https://obsidian.md"
+    T_READY_STEP2="  2. Pick a folder to be your knowledge vault. Open it in Obsidian."
+    T_READY_STEP3="  3. From a terminal, run:"
+    T_READY_STEP3A="       cd <your-vault-folder>"
+    T_READY_STEP3B="       claude"
+    T_READY_STEP4="  4. Paste this as your first message to Claude:"
+    T_READY_STEP4A="       read ~/.claude/onboarding/first-session-prompt.md and walk me through it"
+    T_READY_READ_SELF="  Or read it yourself at:"
+    T_MULTI_BLANK="Enter comma-separated numbers (or blank for none): "
+fi
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -169,7 +223,7 @@ prompt_multi() {
         i=$((i + 1))
     done
     local reply=""
-    read -r -p "Enter comma-separated numbers (or blank for none): " reply || true
+    read -r -p "$T_MULTI_BLANK" reply || true
     local result=()
     if [[ -n "$reply" ]]; then
         IFS=',' read -ra tokens <<< "$reply"
@@ -193,7 +247,7 @@ cwd_slug() {
 # ---------------------------------------------------------------------------
 # Step 2-3: load and prompt
 # ---------------------------------------------------------------------------
-echo "-- Wizard --"
+echo "$T_WIZARD_HEADER"
 
 Q_COUNT=$(json_get '.questions' | (have jq && jq 'length' || python3 -c "import json,sys; print(len(json.load(sys.stdin)))"))
 
@@ -206,6 +260,10 @@ for (( idx=0; idx<Q_COUNT; idx++ )); do
     q_type=$(json_get ".questions[$idx].type")
     q_prompt=$(json_get ".questions[$idx].prompt")
     q_default=$(json_get ".questions[$idx].default")
+    if [[ "$LANG_CODE" == "es" ]]; then
+        q_prompt_es=$(json_get ".questions[$idx].prompt_es")
+        [[ -n "$q_prompt_es" && "$q_prompt_es" != "null" ]] && q_prompt="$q_prompt_es"
+    fi
     case "$q_type" in
         text)
             ANSWERS[$q_id]="$(prompt_text "$q_prompt" "$q_default")"
@@ -220,6 +278,10 @@ for (( idx=0; idx<Q_COUNT; idx++ )); do
                 o_id=$(json_get ".questions[$idx].options[$o].id")
                 o_label=$(json_get ".questions[$idx].options[$o].label")
                 o_desc=$(json_get ".questions[$idx].options[$o].description")
+                if [[ "$LANG_CODE" == "es" ]]; then
+                    o_desc_es=$(json_get ".questions[$idx].options[$o].description_es")
+                    [[ -n "$o_desc_es" && "$o_desc_es" != "null" ]] && o_desc="$o_desc_es"
+                fi
                 opts+=("$o_id|$o_label|$o_desc")
             done
             mapfile -t selected < <(prompt_multi "$q_prompt" "${opts[@]}")
@@ -247,8 +309,8 @@ BACKUP_PATH=""
 
 if [[ -f "$CLAUDE_MD" ]]; then
     if head -n 1 "$CLAUDE_MD" | grep -q -F "$MARKER" && [[ $FORCE -eq 0 ]]; then
-        again=$(prompt_bool "Starter kit is already installed. Re-install?" "false")
-        [[ "$again" != "true" ]] && { echo "Aborted, nothing changed."; exit 0; }
+        again=$(prompt_bool "$T_REINSTALL_Q" "false")
+        [[ "$again" != "true" ]] && { echo "$T_ABORTED"; exit 0; }
     fi
     stamp=$(date -u +"%Y-%m-%dT%H-%M-%S")
     BACKUP_PATH="$CLAUDE_HOME/.backup-$stamp"
@@ -466,17 +528,17 @@ fi
 # Step 10: summary + open guide
 # ---------------------------------------------------------------------------
 echo
-echo "== Install complete =="
+echo "$T_INSTALL_DONE"
 echo "  CLAUDE.md:   $CLAUDE_MD"
-echo "  Skills:      ${SKILLS[*]+"${SKILLS[*]}"}"
-echo "  MCPs:        ${MCPS[*]+"${MCPS[*]}"}"
-echo "  Stop hook:   ${ANSWERS[enable_stop_hook]:-false}"
-[[ -n "$BACKUP_PATH" ]] && echo "  Backup:      $BACKUP_PATH"
+echo "${T_SKILLS_LABEL}${SKILLS[*]+"${SKILLS[*]}"}"
+echo "${T_MCPS_LABEL}${MCPS[*]+"${MCPS[*]}"}"
+echo "${T_HOOK_LABEL}${ANSWERS[enable_stop_hook]:-false}"
+[[ -n "$BACKUP_PATH" ]] && echo "${T_BACKUP_LABEL}${BACKUP_PATH}"
 GUIDE="$REPO_ROOT/guide/index.html"
-echo "  Guide:       $GUIDE"
+echo "${T_GUIDE_LABEL}${GUIDE}"
 
 if [[ $DRY_RUN -eq 0 && -f "$GUIDE" ]]; then
-    open_it=$(prompt_bool "Open the guide in your default browser?" "true")
+    open_it=$(prompt_bool "$T_OPEN_BROWSER_Q" "true")
     if [[ "$open_it" == "true" ]]; then
         case "$(uname -s)" in
             Darwin) open "$GUIDE" ;;
@@ -502,18 +564,18 @@ if [[ "${ANSWERS[show_onboarding_after_install]:-false}" == "true" ]]; then
 
         echo
         echo "=============================================================="
-        echo "  Ready for your first guided session?"
+        echo "$T_READY_BANNER"
         echo "=============================================================="
         echo
-        echo "  1. Install Obsidian (free) from https://obsidian.md"
-        echo "  2. Pick a folder to be your knowledge vault. Open it in Obsidian."
-        echo "  3. From a terminal, run:"
-        echo "       cd <your-vault-folder>"
-        echo "       claude"
-        echo "  4. Paste this as your first message to Claude:"
-        echo "       read ~/.claude/onboarding/first-session-prompt.md and walk me through it"
+        echo "$T_READY_STEP1"
+        echo "$T_READY_STEP2"
+        echo "$T_READY_STEP3"
+        echo "$T_READY_STEP3A"
+        echo "$T_READY_STEP3B"
+        echo "$T_READY_STEP4"
+        echo "$T_READY_STEP4A"
         echo
-        echo "  Or read it yourself at:"
+        echo "$T_READY_READ_SELF"
         echo "    $ONBOARDING_DST"
         echo
     else
