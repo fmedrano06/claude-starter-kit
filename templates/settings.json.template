@@ -1,5 +1,5 @@
 {
-  "_comment": "claude-starter-kit v0.4.1 settings template. The installer rewrites the Stop hook command per OS and applies model/permission/status-line/API-key overrides post-merge based on wizard answers.",
+  "_comment": "claude-starter-kit v0.4.2 settings template. The installer rewrites the Stop hook command per OS and applies model/permission/status-line/API-key overrides post-merge based on wizard answers.",
 
   "skillListingBudgetFraction": 0.03,
   "effortLevel": "high",

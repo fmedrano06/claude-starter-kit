@@ -221,7 +221,7 @@
         "options": [
           { "id": "minimal",  "label": "Minimal — just the folder name",                       "label_es": "Mínima — solo el nombre de la carpeta",                            "description": "Cleanest look.",                                              "description_es": "Look más limpio." },
           { "id": "balanced", "label": "Balanced — folder + branch + model",                   "label_es": "Balanceada — carpeta + branch + modelo",                           "description": "Typical pro setup.",                                          "description_es": "Setup típico pro." },
-          { "id": "verbose",  "label": "Verbose — folder + branch + tokens used + session $",  "label_es": "Verbosa — carpeta + branch + tokens usados + $ de la sesión",      "description": "Recommended while learning — you see your cost in real time.", "description_es": "Recomendado mientras aprendes — ves el costo en tiempo real." }
+          { "id": "verbose",  "label": "Verbose — folder + branch + model + ctx %",            "label_es": "Verbosa — carpeta + branch + modelo + ctx %",                       "description": "Recommended while learning — you see context usage in real time.", "description_es": "Recomendado mientras aprendes — ves el uso de contexto en tiempo real." }
         ]
       }
     ],
@@ -322,7 +322,7 @@
         "options": [
           { "id": "minimal",  "label": "Minimal",                          "label_es": "Mínima",                              "description": "Folder only.",                              "description_es": "Solo la carpeta." },
           { "id": "balanced", "label": "Balanced",                          "label_es": "Balanceada",                          "description": "Folder + branch + model.",                  "description_es": "Carpeta + branch + modelo." },
-          { "id": "verbose",  "label": "Verbose (cost + tokens visible)",   "label_es": "Verbosa (costo + tokens visibles)",   "description": "Folder + branch + tokens + session cost.", "description_es": "Carpeta + branch + tokens + costo de la sesión." }
+          { "id": "verbose",  "label": "Verbose (ctx % visible)",            "label_es": "Verbosa (ctx % visible)",             "description": "Folder + branch + model + ctx %.",          "description_es": "Carpeta + branch + modelo + ctx %." }
         ]
       }
     ],
@@ -408,7 +408,7 @@
         "options": [
           { "id": "minimal",  "label": "Minimal",  "label_es": "Mínima",     "description": "Folder only.",                 "description_es": "Solo la carpeta." },
           { "id": "balanced", "label": "Balanced", "label_es": "Balanceada", "description": "Folder + branch + model.",     "description_es": "Carpeta + branch + modelo." },
-          { "id": "verbose",  "label": "Verbose",  "label_es": "Verbosa",    "description": "+ tokens + session cost.",     "description_es": "+ tokens + costo de la sesión." }
+          { "id": "verbose",  "label": "Verbose",  "label_es": "Verbosa",    "description": "+ ctx %.",                     "description_es": "+ ctx %." }
         ]
       }
     ]

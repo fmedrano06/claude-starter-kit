@@ -101,7 +101,7 @@ exact set of keys depends on the branch; do not assume a fixed list.
 Check whether `CLAUDE_HOME/CLAUDE.md` exists.
 
 - If it exists and begins with the marker comment
-  `<!-- claude-starter-kit v0.4.1 -->`, this kit is already installed.
+  `<!-- claude-starter-kit v0.4.2 -->`, this kit is already installed.
   Ask the user with `AskUserQuestion` whether to re-install. If they
   decline, stop here and report no changes made.
 - If it exists at all, ask the user permission to back up the current
@@ -145,7 +145,7 @@ matching wizard answer (or derived value):
 
 Write the rendered content to `CLAUDE_HOME/CLAUDE.md`. The rendered
 file must begin with the marker comment
-`<!-- claude-starter-kit v0.4.1 -->` so step 4 of a future re-install
+`<!-- claude-starter-kit v0.4.2 -->` so step 4 of a future re-install
 can detect it.
 
 ### Step 6 — Copy selected skills
