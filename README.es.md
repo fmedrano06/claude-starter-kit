@@ -120,4 +120,4 @@ MIT. Ver [`LICENSE`](./LICENSE).
 
 ## Versionamiento
 
-Ver [`CHANGELOG.md`](./CHANGELOG.md). La versión actual es **0.4.0**.
+Ver [`CHANGELOG.md`](./CHANGELOG.md). La versión actual es **0.4.1**.

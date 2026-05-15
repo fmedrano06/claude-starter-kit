@@ -114,14 +114,40 @@
         "default": true
       },
       {
-        "id": "vault_path",
+        "id": "vault_name",
         "type": "text",
+        "prompt": "What do you want to name the vault folder?",
+        "prompt_es": "¿Cómo quieres nombrar la carpeta del vault?",
+        "explainer": "'brain' is the Karpathy convention — think of it as your second memory. Pick whatever feels natural to you.",
+        "explainer_es": "'brain' es la convención de Karpathy — piénsalo como tu segunda memoria. Elige lo que te sea natural.",
+        "default": "brain",
+        "conditional": { "if_answer": "setup_vault", "equals": true }
+      },
+      {
+        "id": "vault_location",
+        "type": "single-select",
         "prompt": "Where should the vault folder live?",
         "prompt_es": "¿Dónde debe vivir la carpeta del vault?",
-        "explainer": "Default is fine for most people. If you already use Obsidian, point this to an empty folder inside your existing vault.",
-        "explainer_es": "El default está bien para la mayoría. Si ya usas Obsidian, apunta esto a una carpeta vacía dentro de tu vault existente.",
-        "default": "~/Documents/claude-vault",
-        "conditional": { "if_answer": "setup_vault", "equals": true }
+        "explainer": "Desktop keeps it visible and easy to drag files into. Documents is the classic spot. Home is shortest. Custom for anything else.",
+        "explainer_es": "Desktop la mantiene visible y fácil de arrastrar archivos. Documents es el lugar clásico. Home es lo más corto. Custom para cualquier otra ruta.",
+        "default": "desktop",
+        "conditional": { "if_answer": "setup_vault", "equals": true },
+        "options": [
+          { "id": "desktop",   "label": "Desktop (~/Desktop/)",       "label_es": "Escritorio (~/Desktop/)",       "description": "Visible at all times. Recommended if you'll edit notes manually.", "description_es": "Visible todo el tiempo. Recomendado si vas a editar notas a mano." },
+          { "id": "documents", "label": "Documents (~/Documents/)",   "label_es": "Documentos (~/Documents/)",     "description": "Classic spot. Out of sight but easy to find.",                       "description_es": "Lugar clásico. Fuera de vista pero fácil de encontrar." },
+          { "id": "home",      "label": "Home (~/)",                  "label_es": "Home (~/)",                     "description": "Shortest path. Some people prefer no nesting.",                       "description_es": "Ruta más corta. Algunos prefieren sin anidamiento." },
+          { "id": "custom",    "label": "Custom path",                "label_es": "Ruta personalizada",            "description": "Type any absolute path on the next prompt.",                          "description_es": "Escribe cualquier ruta absoluta en el siguiente prompt." }
+        ]
+      },
+      {
+        "id": "vault_custom_path",
+        "type": "text",
+        "prompt": "Type the full path where the vault folder should live (the folder name you chose will be appended):",
+        "prompt_es": "Escribe la ruta completa donde debe vivir la carpeta (el nombre que elegiste se agregará al final):",
+        "explainer": "Example: /Users/you/work — the vault will be created at /Users/you/work/<vault_name>.",
+        "explainer_es": "Ejemplo: /Users/tu/work — el vault se creará en /Users/tu/work/<vault_name>.",
+        "default": "",
+        "conditional": { "if_answer": "vault_location", "equals": "custom" }
       },
       {
         "id": "skills_to_install",
@@ -242,7 +268,22 @@
         ]
       },
       { "id": "setup_vault", "type": "boolean", "prompt": "Set up a knowledge vault (Obsidian-compatible)?", "prompt_es": "¿Configurar un vault de conocimiento (compatible con Obsidian)?", "default": true },
-      { "id": "vault_path",  "type": "text",    "prompt": "Vault path?",                                     "prompt_es": "¿Ruta del vault?",                                                "default": "~/Documents/claude-vault", "conditional": { "if_answer": "setup_vault", "equals": true } },
+      { "id": "vault_name",  "type": "text",    "prompt": "Vault folder name?",  "prompt_es": "¿Nombre de la carpeta del vault?", "explainer": "'brain' is the Karpathy convention. Anything works.", "explainer_es": "'brain' es la convención Karpathy. Cualquier nombre vale.", "default": "brain", "conditional": { "if_answer": "setup_vault", "equals": true } },
+      {
+        "id": "vault_location",
+        "type": "single-select",
+        "prompt": "Vault location?",
+        "prompt_es": "¿Ubicación del vault?",
+        "default": "desktop",
+        "conditional": { "if_answer": "setup_vault", "equals": true },
+        "options": [
+          { "id": "desktop",   "label": "Desktop",       "label_es": "Escritorio",       "description": "~/Desktop/",   "description_es": "~/Desktop/" },
+          { "id": "documents", "label": "Documents",     "label_es": "Documentos",       "description": "~/Documents/", "description_es": "~/Documents/" },
+          { "id": "home",      "label": "Home",          "label_es": "Home",             "description": "~/",           "description_es": "~/" },
+          { "id": "custom",    "label": "Custom path",   "label_es": "Ruta personalizada", "description": "Type next.",  "description_es": "Escribe después." }
+        ]
+      },
+      { "id": "vault_custom_path", "type": "text", "prompt": "Custom base path (vault_name appended):", "prompt_es": "Ruta base personalizada (se anexa vault_name):", "default": "", "conditional": { "if_answer": "vault_location", "equals": "custom" } },
       {
         "id": "skills_to_install",
         "type": "multi-select",
@@ -313,7 +354,22 @@
         ]
       },
       { "id": "setup_vault", "type": "boolean", "prompt": "Set up knowledge vault?", "prompt_es": "¿Configurar vault?", "default": false },
-      { "id": "vault_path",  "type": "text",    "prompt": "Vault path?",              "prompt_es": "¿Ruta del vault?",     "default": "~/Documents/claude-vault", "conditional": { "if_answer": "setup_vault", "equals": true } },
+      { "id": "vault_name",  "type": "text",    "prompt": "Vault folder name?",      "prompt_es": "¿Nombre de la carpeta?", "default": "brain", "conditional": { "if_answer": "setup_vault", "equals": true } },
+      {
+        "id": "vault_location",
+        "type": "single-select",
+        "prompt": "Vault location?",
+        "prompt_es": "¿Ubicación?",
+        "default": "desktop",
+        "conditional": { "if_answer": "setup_vault", "equals": true },
+        "options": [
+          { "id": "desktop",   "label": "Desktop",     "label_es": "Escritorio",         "description": "~/Desktop/",   "description_es": "~/Desktop/" },
+          { "id": "documents", "label": "Documents",   "label_es": "Documentos",         "description": "~/Documents/", "description_es": "~/Documents/" },
+          { "id": "home",      "label": "Home",        "label_es": "Home",               "description": "~/",           "description_es": "~/" },
+          { "id": "custom",    "label": "Custom",      "label_es": "Personalizada",      "description": "Type next.",  "description_es": "Escribe después." }
+        ]
+      },
+      { "id": "vault_custom_path", "type": "text", "prompt": "Custom base path:", "prompt_es": "Ruta base:", "default": "", "conditional": { "if_answer": "vault_location", "equals": "custom" } },
       {
         "id": "skills_to_install",
         "type": "multi-select",

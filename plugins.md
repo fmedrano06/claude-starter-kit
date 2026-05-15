@@ -39,6 +39,9 @@ plugin individually outside of the template.
 | `code-simplifier` | Agent that simplifies and refines code for clarity, consistency, and maintainability while preserving functionality. Focuses on recently modified code.[^7] | `/plugin install code-simplifier@claude-plugins-official` |
 | `feature-dev` | Comprehensive feature development workflow with specialized agents for codebase exploration, architecture design, and quality review.[^8] | `/plugin install feature-dev@claude-plugins-official` |
 | `plugin-dev` | Comprehensive toolkit for developing Claude Code plugins. Includes expert skills covering hooks, MCP integration, commands, agents, and best practices.[^9] | `/plugin install plugin-dev@claude-plugins-official` |
+| `skill-creator` | Agent for creating, modifying, and measuring skills. Useful when you want to extend your Claude Code with new domain-specific skills.[^10] | `/plugin install skill-creator@claude-plugins-official` |
+| `code-review` | Provides `/review` and `/security-review` slash commands that perform structured pull-request reviews against the current branch.[^11] | `/plugin install code-review@claude-plugins-official` |
+| `typescript-lsp` | TypeScript/JavaScript language server for code intelligence: go-to-definition, find references, error checking across `.ts`/`.tsx`/`.js`/`.jsx`.[^12] | `/plugin install typescript-lsp@claude-plugins-official` |
 
 > Note: the install command syntax is `/plugin install <name>@<marketplace>`.
 > The command is interactive — Claude Code will ask whether you want to
@@ -50,7 +53,7 @@ The plugins above live in six marketplaces, all public GitHub repos:
 
 | Marketplace name | GitHub repo |
 |---|---|
-| `claude-plugins-official` | https://github.com/anthropics/claude-plugins-public |
+| `claude-plugins-official` | https://github.com/anthropics/claude-code-plugins |
 | `cli-anything` | https://github.com/HKUDS/CLI-Anything |
 | `karpathy-skills` | https://github.com/forrestchang/andrej-karpathy-skills |
 | `addy-agent-skills` | https://github.com/addyosmani/agent-skills |
@@ -70,7 +73,7 @@ yourself), open Claude Code and run:
 /plugin list
 ```
 
-You should see all nine plugins in the output. If any are missing:
+You should see all twelve plugins in the output. If any are missing:
 
 1. Confirm the marketplace is registered with `claude marketplace list`.
 2. Re-run `/plugin install <name>@<marketplace>` for the missing one.
@@ -102,14 +105,23 @@ auto-load.
   https://github.com/thedotmack/claude-mem, plugin entry for
   `claude-mem`, field `description`.
 [^6]: Source: `claude-plugins-official` marketplace manifest at
-  https://github.com/anthropics/claude-plugins-public, plugin entry for
+  https://github.com/anthropics/claude-code-plugins, plugin entry for
   `playground`, field `description`.
 [^7]: Source: `claude-plugins-official` marketplace manifest at
-  https://github.com/anthropics/claude-plugins-public, plugin entry for
+  https://github.com/anthropics/claude-code-plugins, plugin entry for
   `code-simplifier`, field `description`.
 [^8]: Source: `claude-plugins-official` marketplace manifest at
-  https://github.com/anthropics/claude-plugins-public, plugin entry for
+  https://github.com/anthropics/claude-code-plugins, plugin entry for
   `feature-dev`, field `description`.
 [^9]: Source: `claude-plugins-official` marketplace manifest at
-  https://github.com/anthropics/claude-plugins-public, plugin entry for
+  https://github.com/anthropics/claude-code-plugins, plugin entry for
   `plugin-dev`, field `description`.
+[^10]: Source: `claude-plugins-official` marketplace manifest at
+  https://github.com/anthropics/claude-code-plugins, plugin entry for
+  `skill-creator`, field `description`.
+[^11]: Source: `claude-plugins-official` marketplace manifest at
+  https://github.com/anthropics/claude-code-plugins, plugin entry for
+  `code-review`, field `description`.
+[^12]: Source: `claude-plugins-official` marketplace manifest at
+  https://github.com/anthropics/claude-code-plugins, plugin entry for
+  `typescript-lsp`, field `description`.

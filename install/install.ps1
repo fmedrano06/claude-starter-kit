@@ -37,7 +37,7 @@ if (-not (Test-Path -LiteralPath $WizardJsonPath)) {
 }
 
 $ClaudeHome = Join-Path $env:USERPROFILE '.claude'
-$Marker     = '<!-- claude-starter-kit v0.4.0 -->'
+$Marker     = '<!-- claude-starter-kit v0.4.1 -->'
 
 Write-Host ''
 Write-Host '== Claude Starter Kit installer ==' -ForegroundColor Cyan
@@ -77,6 +77,15 @@ $T = if ($Lang -eq 'es') {
         failed_prefix   = 'FALLÓ: '
         restoring       = 'Restaurando backup...'
         multi_blank     = 'Ingresa números separados por coma (o vacío para ninguno)'
+        vault_hint_header = ''
+        vault_hint_title  = 'Tu vault está listo en:'
+        vault_hint_line1  = 'Para usarlo con Obsidian (recomendado):'
+        vault_hint_line2  = '  1. Descarga Obsidian gratis: https://obsidian.md'
+        vault_hint_line3  = '  2. Abre Obsidian → "Open folder as vault" → apunta a la ruta de arriba'
+        vault_hint_line4  = '  3. Plugins recomendados (Settings → Community plugins):'
+        vault_hint_line5  = '       - Templater  (snippets para daily notes)'
+        vault_hint_line6  = '       - Dataview   (queries SQL-style sobre wiki/)'
+        vault_hint_line7  = 'El vault ya está conectado con Claude vía CLAUDE.md.'
     }
 } else {
     @{
@@ -103,6 +112,15 @@ $T = if ($Lang -eq 'es') {
         failed_prefix   = 'FAILED: '
         restoring       = 'Restoring backup...'
         multi_blank     = 'Enter comma-separated numbers (or blank for none)'
+        vault_hint_header = ''
+        vault_hint_title  = 'Your vault is ready at:'
+        vault_hint_line1  = 'To use it with Obsidian (recommended):'
+        vault_hint_line2  = '  1. Download Obsidian (free): https://obsidian.md'
+        vault_hint_line3  = '  2. Open Obsidian → "Open folder as vault" → point to the path above'
+        vault_hint_line4  = '  3. Recommended plugins (Settings → Community plugins):'
+        vault_hint_line5  = '       - Templater  (snippets for daily notes)'
+        vault_hint_line6  = '       - Dataview   (SQL-style queries over wiki/)'
+        vault_hint_line7  = 'The vault is already wired to Claude via CLAUDE.md.'
     }
 }
 function Get-QPrompt {
@@ -251,6 +269,27 @@ function Get-CwdSlug {
     $slug = $cwd -replace '^[A-Za-z]:', ''
     $slug = $slug -replace '[\\/ ]+', '-'
     return $slug.Trim('-').ToLowerInvariant()
+}
+
+function Resolve-VaultPath {
+    param([hashtable]$Answers)
+    if (-not $Answers.ContainsKey('setup_vault') -or -not [bool]$Answers.setup_vault) { return $null }
+    $name = if ($Answers.ContainsKey('vault_name') -and -not [string]::IsNullOrWhiteSpace([string]$Answers.vault_name)) {
+        [string]$Answers.vault_name
+    } else { 'brain' }
+    $location = if ($Answers.ContainsKey('vault_location')) { [string]$Answers.vault_location } else { 'desktop' }
+    $base = switch ($location) {
+        'desktop'   { Join-Path $env:USERPROFILE 'Desktop' }
+        'documents' { Join-Path $env:USERPROFILE 'Documents' }
+        'home'      { $env:USERPROFILE }
+        'custom'    {
+            $custom = if ($Answers.ContainsKey('vault_custom_path')) { [string]$Answers.vault_custom_path } else { '' }
+            if ([string]::IsNullOrWhiteSpace($custom)) { Join-Path $env:USERPROFILE 'Desktop' }
+            else { $custom.Replace('~', $env:USERPROFILE).Replace('/', '\') }
+        }
+        default     { Join-Path $env:USERPROFILE 'Desktop' }
+    }
+    return (Join-Path $base $name)
 }
 
 function Render-Template {
@@ -460,11 +499,8 @@ try {
             'over_100'  { '100' }
             default     { '25' }
         }
-        $vaultPath = if ($answers.ContainsKey('vault_path') -and -not [string]::IsNullOrWhiteSpace([string]$answers.vault_path)) {
-            [string]$answers.vault_path
-        } else {
-            '(none)'
-        }
+        $resolvedVaultPath = Resolve-VaultPath -Answers $answers
+        $vaultPath = if ($resolvedVaultPath) { $resolvedVaultPath } else { '(none)' }
         $primaryGoal = if ($answers.ContainsKey('primary_goal')) { [string]$answers.primary_goal } else { '' }
         $primaryGoalHuman = switch ($primaryGoal) {
             'learn_to_code'     { 'learn to code' }
@@ -645,17 +681,10 @@ try {
     }
 
     # -----------------------------------------------------------------------
-    # Step 9.5 (v0.4.0): knowledge vault scaffold
+    # Step 9.5 (v0.4.1): knowledge vault scaffold — Obsidian-native
     # -----------------------------------------------------------------------
-    $vaultPathFinal = $null
-    if ($answers.ContainsKey('setup_vault') -and [bool]$answers.setup_vault) {
-        $vaultPathRaw = if ($answers.ContainsKey('vault_path') -and -not [string]::IsNullOrWhiteSpace([string]$answers.vault_path)) {
-            [string]$answers.vault_path
-        } else {
-            '~/Documents/claude-vault'
-        }
-        # Expand ~ to $env:USERPROFILE
-        $vaultPathFinal = $vaultPathRaw.Replace('~', $env:USERPROFILE).Replace('/', '\')
+    $vaultPathFinal = Resolve-VaultPath -Answers $answers
+    if ($vaultPathFinal) {
         Write-Action 'VAULT' $vaultPathFinal
         Invoke-FsAction {
             foreach ($sub in @('raw','wiki','outputs','projects','_daily','_session-handoffs')) {
@@ -664,31 +693,151 @@ try {
             $vaultClaudeMd = @"
 <!-- claude-starter-kit vault — generated $(Get-Date -Format 'yyyy-MM-dd') -->
 
-# Knowledge vault — local rules
+# Knowledge vault — Claude's second memory
 
-This folder is a knowledge vault. It uses the Karpathy 3-folder layout
-plus a few utility folders:
+This folder is your **second memory**. Claude reads it at the start of
+every session in this directory, and writes back to it during and after
+sessions. It is Obsidian-compatible out of the box.
 
-- ``raw/`` — unprocessed notes, dumps, transcripts, paste-ins.
-- ``wiki/`` — distilled, durable knowledge written for future-self.
-- ``outputs/`` — finished artifacts produced from raw + wiki.
-- ``projects/`` — one folder per active project.
-- ``_daily/`` — daily notes, format ``YYYY-MM-DD.md``.
-- ``_session-handoffs/`` — Claude session handoffs.
+The contract below tells Claude exactly how to use this vault. Follow
+it — these rules exist to prevent the two failure modes that kill
+note-systems: (1) infinite looping rediscovery, (2) silent duplication.
 
-When the user asks you to "save a note" or "remember this for later"
-without specifying where, default to:
+---
 
-- Quick capture, in-progress thinking → ``raw/YYYY-MM-DD-<slug>.md``
-- A reusable lesson, pattern, or reference → ``wiki/<topic>.md``
-- A finished thing → ``outputs/<project>/<slug>.<ext>``
+## Folder map
 
-Project-specific CLAUDE.md files in ``projects/<name>/`` override these
-defaults for that project.
+Karpathy 3-folder layout + utilities:
+
+- ``raw/`` — unprocessed notes, dumps, transcripts, paste-ins. Cheap to
+  write, no quality bar. Filename: ``YYYY-MM-DD-<slug>.md``.
+- ``wiki/`` — distilled, durable knowledge written for future-self. One
+  idea per note. Filename: ``<topic>.md`` (kebab-case).
+- ``outputs/`` — finished artifacts produced from raw + wiki (decks,
+  reports, code, posts). Filename: ``<project>/<slug>.<ext>``.
+- ``projects/`` — one folder per active project. Each may contain its
+  own ``CLAUDE.md`` that overrides this file for that subtree.
+- ``_daily/`` — daily notes. Filename: ``YYYY-MM-DD.md`` (one per day).
+- ``_session-handoffs/`` — Claude session handoffs. Filename:
+  ``YYYY-MM-DD-HHMM-<slug>.md``.
+
+---
+
+## Obsidian conventions
+
+This vault uses three Obsidian-native conventions. Apply them every time
+you write a note here.
+
+1. **Wiki-links.** Link related concepts with ``[[double-brackets]]``.
+   Example: in ``wiki/prompt-caching.md``, when mentioning Sonnet, write
+   ``[[claude-sonnet]]``. This activates Obsidian's graph view and lets
+   future-Claude traverse the knowledge by relevance, not by filename.
+2. **Atomic notes.** One note = one idea. If a note covers 3 ideas,
+   split into 3 notes and link them. A note titled
+   ``wiki/everything-about-x.md`` is an anti-pattern — refactor it.
+3. **Daily notes.** Open ``_daily/YYYY-MM-DD.md`` at the start of every
+   working session and append to it at the end. The daily is the
+   chronological log; ``wiki/`` is the topical encyclopedia.
+
+---
+
+## Search-before-write protocol (anti-duplication)
+
+Before creating any note in ``wiki/`` or ``raw/``:
+
+1. **Grep the vault.** Search for keywords from the note's topic across
+   ``wiki/``, ``raw/``, and ``_daily/``. Use Grep, not memory.
+2. **If a related note exists:** open it. Decide one of:
+   - **Update in place** — append a section, refine wording. Preferred.
+   - **Link from the existing note** to a new sister note covering a
+     different facet (only if the new content is genuinely a distinct
+     atomic idea).
+   - **Refactor** — split the old note if it's grown non-atomic.
+3. **Only if nothing relevant exists,** create the new note. Add at
+   least one ``[[link]]`` to a related note on creation — orphans rot.
+
+**Do not** create ``wiki/notes-on-x.md`` when ``wiki/x.md`` exists.
+**Do not** trust a sense of "I haven't seen this before" — grep first.
+
+---
+
+## Where to put what (routing rules)
+
+When the user says "save this", "remember this", or "note this", route by
+intent, not by filename:
+
+| User intent | Goes to | Filename pattern |
+|---|---|---|
+| Quick capture, in-progress thinking, paste-in | ``raw/`` | ``YYYY-MM-DD-<slug>.md`` |
+| Reusable lesson, pattern, reference, decision | ``wiki/`` | ``<topic>.md`` |
+| Finished artifact (deck, report, code, post) | ``outputs/<project>/`` | ``<slug>.<ext>`` |
+| Project-specific work-in-progress | ``projects/<name>/`` | per-project |
+| Today's chronological log entry | ``_daily/`` | ``YYYY-MM-DD.md`` |
+| End-of-session summary for the next agent | ``_session-handoffs/`` | ``YYYY-MM-DD-HHMM-<slug>.md`` |
+
+If unsure between ``raw/`` and ``wiki/``: pick ``raw/``. Promote to
+``wiki/`` later, after the idea has settled.
+
+---
+
+## Closing protocol (let Claude write back)
+
+At the end of every working session in this vault, before saying goodbye:
+
+1. **Open the daily note** for today: ``_daily/YYYY-MM-DD.md``. Create
+   it from the seed if missing.
+2. **Append a "Session — HH:MM" section** with:
+   - 2-3 bullet points of what was done.
+   - ``[[wiki-links]]`` to every wiki note touched or created today.
+   - Any open question or next-step.
+3. **If a durable pattern emerged** (a decision, a reusable recipe, an
+   anti-pattern worth remembering), create ``wiki/<topic>.md`` and link
+   to it from the daily.
+4. **If the session was about a specific project**, also drop a handoff
+   in ``_session-handoffs/`` (the project may have its own protocol —
+   check ``projects/<name>/CLAUDE.md`` first).
+
+This is what makes the vault a real second memory instead of a folder
+full of files: every session compounds.
+
+---
+
+## Naming conventions
+
+- ``kebab-case.md`` for all wiki notes. No spaces, no underscores.
+- No dates in filenames **except** ``_daily/`` and ``_session-handoffs/``.
+- No version suffixes (``-v2``, ``-final``, ``-old``). Edit in place.
+- English filenames. Content may be in any language.
+
+---
+
+## What NOT to do (anti-patterns)
+
+- **Do not re-summarize the daily at the start of every session.** Read
+  the latest daily and the relevant wiki notes; do not regenerate them.
+- **Do not create ``wiki/notes-about-x.md`` and ``wiki/x-notes.md``** —
+  these are the same note. Grep first, then write.
+- **Do not move notes between folders without updating incoming
+  ``[[links]]``.** Use Obsidian's rename (or grep+sed) to update links
+  before moving.
+- **Do not write multi-topic notes.** If you find one, split it on next
+  edit.
+- **Do not use the vault as a chat log.** Daily notes are summaries, not
+  transcripts. If raw transcript is needed, ``raw/`` is the place.
+
+---
+
+## How Claude should treat this file
+
+Read this CLAUDE.md at the start of every session in this directory.
+Treat it as a contract, not a suggestion. If a rule here contradicts a
+rule in a parent CLAUDE.md (e.g. ``~/.claude/CLAUDE.md``), the
+parent wins — but flag the contradiction to the user so it can be
+reconciled.
 "@
             Set-Content -LiteralPath (Join-Path $vaultPathFinal 'CLAUDE.md') -Value $vaultClaudeMd -Encoding UTF8
             $today = Get-Date -Format 'yyyy-MM-dd'
-            $dailySeed = "# $today`n`n## Today's intent`n`n## Notes`n`n## Tomorrow`n"
+            $dailySeed = "# $today`n`n## Today's intent`n`n## Notes`n`n## Sessions`n`n## Tomorrow`n"
             $dailyPath = Join-Path $vaultPathFinal ("_daily\$today.md")
             if (-not (Test-Path -LiteralPath $dailyPath)) {
                 Set-Content -LiteralPath $dailyPath -Value $dailySeed -Encoding UTF8
@@ -708,6 +857,23 @@ defaults for that project.
     if ($BackupPath) { Write-Host ($T.backup_label + $BackupPath) }
     $guidePath = Join-Path $RepoRoot 'guide\index.html'
     Write-Host ($T.guide_label + $guidePath)
+
+    # Obsidian hint — only when a vault was actually scaffolded
+    if ($vaultPathFinal) {
+        Write-Host ''
+        Write-Host $T.vault_hint_title -ForegroundColor Cyan
+        Write-Host "    $vaultPathFinal"
+        Write-Host ''
+        Write-Host $T.vault_hint_line1
+        Write-Host $T.vault_hint_line2
+        Write-Host $T.vault_hint_line3
+        Write-Host $T.vault_hint_line4
+        Write-Host $T.vault_hint_line5
+        Write-Host $T.vault_hint_line6
+        Write-Host ''
+        Write-Host $T.vault_hint_line7
+    }
+
     if (-not $DryRun -and (Test-Path -LiteralPath $guidePath)) {
         $open = Read-Boolean -Prompt $T.open_browser_q -Default $true
         if ($open) { Start-Process $guidePath }

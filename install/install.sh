@@ -39,7 +39,7 @@ if [[ ! -f "$WIZARD_JSON" ]]; then
 fi
 
 CLAUDE_HOME="${HOME}/.claude"
-MARKER='<!-- claude-starter-kit v0.4.0 -->'
+MARKER='<!-- claude-starter-kit v0.4.1 -->'
 
 # ---------------------------------------------------------------------------
 # Dependencies
@@ -98,6 +98,14 @@ if [[ "$LANG_CODE" == "es" ]]; then
     T_READY_STEP4A="       read ~/.claude/onboarding/first-session-prompt.md and walk me through it"
     T_READY_READ_SELF="  O léelo tú mismo en:"
     T_MULTI_BLANK="Ingresa números separados por coma (o vacío para ninguno): "
+    T_VAULT_HINT_TITLE="Tu vault está listo en:"
+    T_VAULT_HINT_L1="Para usarlo con Obsidian (recomendado):"
+    T_VAULT_HINT_L2="  1. Descarga Obsidian gratis: https://obsidian.md"
+    T_VAULT_HINT_L3="  2. Abre Obsidian → \"Open folder as vault\" → apunta a la ruta de arriba"
+    T_VAULT_HINT_L4="  3. Plugins recomendados (Settings → Community plugins):"
+    T_VAULT_HINT_L5="       - Templater  (snippets para daily notes)"
+    T_VAULT_HINT_L6="       - Dataview   (queries SQL-style sobre wiki/)"
+    T_VAULT_HINT_L7="El vault ya está conectado con Claude vía CLAUDE.md."
 else
     T_WIZARD_HEADER="-- Wizard --"
     T_REINSTALL_Q="Starter kit is already installed. Re-install?"
@@ -119,6 +127,14 @@ else
     T_READY_STEP4A="       read ~/.claude/onboarding/first-session-prompt.md and walk me through it"
     T_READY_READ_SELF="  Or read it yourself at:"
     T_MULTI_BLANK="Enter comma-separated numbers (or blank for none): "
+    T_VAULT_HINT_TITLE="Your vault is ready at:"
+    T_VAULT_HINT_L1="To use it with Obsidian (recommended):"
+    T_VAULT_HINT_L2="  1. Download Obsidian (free): https://obsidian.md"
+    T_VAULT_HINT_L3="  2. Open Obsidian → \"Open folder as vault\" → point to the path above"
+    T_VAULT_HINT_L4="  3. Recommended plugins (Settings → Community plugins):"
+    T_VAULT_HINT_L5="       - Templater  (snippets for daily notes)"
+    T_VAULT_HINT_L6="       - Dataview   (SQL-style queries over wiki/)"
+    T_VAULT_HINT_L7="The vault is already wired to Claude via CLAUDE.md."
 fi
 
 # ---------------------------------------------------------------------------
@@ -314,6 +330,31 @@ cwd_slug() {
     echo "$cwd" | sed -e 's|^/||' -e 's|[/ ]|-|g' | tr '[:upper:]' '[:lower:]'
 }
 
+# Compose the vault path from vault_name + vault_location (+ vault_custom_path).
+# Echoes the path, or empty string if setup_vault != true.
+resolve_vault_path() {
+    [[ "${ANSWERS[setup_vault]:-false}" != "true" ]] && return 0
+    local name="${ANSWERS[vault_name]:-brain}"
+    [[ -z "$name" ]] && name="brain"
+    local location="${ANSWERS[vault_location]:-desktop}"
+    local base
+    case "$location" in
+        desktop)   base="$HOME/Desktop" ;;
+        documents) base="$HOME/Documents" ;;
+        home)      base="$HOME" ;;
+        custom)
+            local custom="${ANSWERS[vault_custom_path]:-}"
+            if [[ -z "$custom" ]]; then
+                base="$HOME/Desktop"
+            else
+                base="${custom/#\~/$HOME}"
+            fi
+            ;;
+        *) base="$HOME/Desktop" ;;
+    esac
+    echo "$base/$name"
+}
+
 # ---------------------------------------------------------------------------
 # Step 2-3: adaptive wizard (schema 2.0)
 # ---------------------------------------------------------------------------
@@ -493,7 +534,8 @@ render_template() {
         over_100)  cost_threshold="100" ;;
         *)         cost_threshold="25" ;;
     esac
-    local vault_path="${ANSWERS[vault_path]:-}"
+    local vault_path
+    vault_path="$(resolve_vault_path)"
     [[ -z "$vault_path" ]] && vault_path="(none)"
     local primary_goal_human
     case "${ANSWERS[primary_goal]:-}" in
@@ -753,45 +795,167 @@ if [[ "${ANSWERS[enable_stop_hook]:-false}" == "true" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Step 9.5 (v0.4.0): knowledge vault scaffold
+# Step 9.5 (v0.4.1): knowledge vault scaffold — Obsidian-native
 # ---------------------------------------------------------------------------
-VAULT_PATH_FINAL=""
-if [[ "${ANSWERS[setup_vault]:-false}" == "true" ]]; then
-    VAULT_RAW="${ANSWERS[vault_path]:-~/Documents/claude-vault}"
-    VAULT_PATH_FINAL="${VAULT_RAW/#\~/$HOME}"
+VAULT_PATH_FINAL="$(resolve_vault_path)"
+if [[ -n "$VAULT_PATH_FINAL" ]]; then
     action VAULT "$VAULT_PATH_FINAL"
     if [[ $DRY_RUN -eq 0 ]]; then
         for sub in raw wiki outputs projects _daily _session-handoffs; do
             mkdir -p "$VAULT_PATH_FINAL/$sub"
         done
-        cat > "$VAULT_PATH_FINAL/CLAUDE.md" <<EOF
-<!-- claude-starter-kit vault — generated $(date +%Y-%m-%d) -->
+        VAULT_TODAY="$(date +%Y-%m-%d)"
+        # Heredoc with quoted EOF — literal text, no interpolation, no backtick escaping
+        cat > "$VAULT_PATH_FINAL/CLAUDE.md" <<'VAULT_CLAUDE_MD_EOF'
+<!-- claude-starter-kit vault — generated __VAULT_TODAY__ -->
 
-# Knowledge vault — local rules
+# Knowledge vault — Claude's second memory
 
-This folder is a knowledge vault. It uses the Karpathy 3-folder layout
-plus a few utility folders:
+This folder is your **second memory**. Claude reads it at the start of
+every session in this directory, and writes back to it during and after
+sessions. It is Obsidian-compatible out of the box.
 
-- \`raw/\` — unprocessed notes, dumps, transcripts, paste-ins.
-- \`wiki/\` — distilled, durable knowledge written for future-self.
-- \`outputs/\` — finished artifacts produced from raw + wiki.
-- \`projects/\` — one folder per active project.
-- \`_daily/\` — daily notes, format \`YYYY-MM-DD.md\`.
-- \`_session-handoffs/\` — Claude session handoffs.
+The contract below tells Claude exactly how to use this vault. Follow
+it — these rules exist to prevent the two failure modes that kill
+note-systems: (1) infinite looping rediscovery, (2) silent duplication.
 
-When the user asks you to "save a note" or "remember this for later"
-without specifying where, default to:
+---
 
-- Quick capture, in-progress thinking → \`raw/YYYY-MM-DD-<slug>.md\`
-- A reusable lesson, pattern, or reference → \`wiki/<topic>.md\`
-- A finished thing → \`outputs/<project>/<slug>.<ext>\`
+## Folder map
 
-Project-specific CLAUDE.md files in \`projects/<name>/\` override these
-defaults for that project.
-EOF
-        TODAY="$(date +%Y-%m-%d)"
-        DAILY="$VAULT_PATH_FINAL/_daily/$TODAY.md"
-        [[ ! -f "$DAILY" ]] && printf '# %s\n\n## Today'"'"'s intent\n\n## Notes\n\n## Tomorrow\n' "$TODAY" > "$DAILY"
+Karpathy 3-folder layout + utilities:
+
+- `raw/` — unprocessed notes, dumps, transcripts, paste-ins. Cheap to
+  write, no quality bar. Filename: `YYYY-MM-DD-<slug>.md`.
+- `wiki/` — distilled, durable knowledge written for future-self. One
+  idea per note. Filename: `<topic>.md` (kebab-case).
+- `outputs/` — finished artifacts produced from raw + wiki (decks,
+  reports, code, posts). Filename: `<project>/<slug>.<ext>`.
+- `projects/` — one folder per active project. Each may contain its
+  own `CLAUDE.md` that overrides this file for that subtree.
+- `_daily/` — daily notes. Filename: `YYYY-MM-DD.md` (one per day).
+- `_session-handoffs/` — Claude session handoffs. Filename:
+  `YYYY-MM-DD-HHMM-<slug>.md`.
+
+---
+
+## Obsidian conventions
+
+This vault uses three Obsidian-native conventions. Apply them every time
+you write a note here.
+
+1. **Wiki-links.** Link related concepts with `[[double-brackets]]`.
+   Example: in `wiki/prompt-caching.md`, when mentioning Sonnet, write
+   `[[claude-sonnet]]`. This activates Obsidian's graph view and lets
+   future-Claude traverse the knowledge by relevance, not by filename.
+2. **Atomic notes.** One note = one idea. If a note covers 3 ideas,
+   split into 3 notes and link them. A note titled
+   `wiki/everything-about-x.md` is an anti-pattern — refactor it.
+3. **Daily notes.** Open `_daily/YYYY-MM-DD.md` at the start of every
+   working session and append to it at the end. The daily is the
+   chronological log; `wiki/` is the topical encyclopedia.
+
+---
+
+## Search-before-write protocol (anti-duplication)
+
+Before creating any note in `wiki/` or `raw/`:
+
+1. **Grep the vault.** Search for keywords from the note's topic across
+   `wiki/`, `raw/`, and `_daily/`. Use Grep, not memory.
+2. **If a related note exists:** open it. Decide one of:
+   - **Update in place** — append a section, refine wording. Preferred.
+   - **Link from the existing note** to a new sister note covering a
+     different facet (only if the new content is genuinely a distinct
+     atomic idea).
+   - **Refactor** — split the old note if it's grown non-atomic.
+3. **Only if nothing relevant exists,** create the new note. Add at
+   least one `[[link]]` to a related note on creation — orphans rot.
+
+**Do not** create `wiki/notes-on-x.md` when `wiki/x.md` exists.
+**Do not** trust a sense of "I haven't seen this before" — grep first.
+
+---
+
+## Where to put what (routing rules)
+
+When the user says "save this", "remember this", or "note this", route by
+intent, not by filename:
+
+| User intent | Goes to | Filename pattern |
+|---|---|---|
+| Quick capture, in-progress thinking, paste-in | `raw/` | `YYYY-MM-DD-<slug>.md` |
+| Reusable lesson, pattern, reference, decision | `wiki/` | `<topic>.md` |
+| Finished artifact (deck, report, code, post) | `outputs/<project>/` | `<slug>.<ext>` |
+| Project-specific work-in-progress | `projects/<name>/` | per-project |
+| Today's chronological log entry | `_daily/` | `YYYY-MM-DD.md` |
+| End-of-session summary for the next agent | `_session-handoffs/` | `YYYY-MM-DD-HHMM-<slug>.md` |
+
+If unsure between `raw/` and `wiki/`: pick `raw/`. Promote to
+`wiki/` later, after the idea has settled.
+
+---
+
+## Closing protocol (let Claude write back)
+
+At the end of every working session in this vault, before saying goodbye:
+
+1. **Open the daily note** for today: `_daily/YYYY-MM-DD.md`. Create
+   it from the seed if missing.
+2. **Append a "Session — HH:MM" section** with:
+   - 2-3 bullet points of what was done.
+   - `[[wiki-links]]` to every wiki note touched or created today.
+   - Any open question or next-step.
+3. **If a durable pattern emerged** (a decision, a reusable recipe, an
+   anti-pattern worth remembering), create `wiki/<topic>.md` and link
+   to it from the daily.
+4. **If the session was about a specific project**, also drop a handoff
+   in `_session-handoffs/` (the project may have its own protocol —
+   check `projects/<name>/CLAUDE.md` first).
+
+This is what makes the vault a real second memory instead of a folder
+full of files: every session compounds.
+
+---
+
+## Naming conventions
+
+- `kebab-case.md` for all wiki notes. No spaces, no underscores.
+- No dates in filenames **except** `_daily/` and `_session-handoffs/`.
+- No version suffixes (`-v2`, `-final`, `-old`). Edit in place.
+- English filenames. Content may be in any language.
+
+---
+
+## What NOT to do (anti-patterns)
+
+- **Do not re-summarize the daily at the start of every session.** Read
+  the latest daily and the relevant wiki notes; do not regenerate them.
+- **Do not create `wiki/notes-about-x.md` and `wiki/x-notes.md`** —
+  these are the same note. Grep first, then write.
+- **Do not move notes between folders without updating incoming
+  `[[links]]`.** Use Obsidian's rename (or grep+sed) to update links
+  before moving.
+- **Do not write multi-topic notes.** If you find one, split it on next
+  edit.
+- **Do not use the vault as a chat log.** Daily notes are summaries, not
+  transcripts. If raw transcript is needed, `raw/` is the place.
+
+---
+
+## How Claude should treat this file
+
+Read this CLAUDE.md at the start of every session in this directory.
+Treat it as a contract, not a suggestion. If a rule here contradicts a
+rule in a parent CLAUDE.md (e.g. `~/.claude/CLAUDE.md`), the
+parent wins — but flag the contradiction to the user so it can be
+reconciled.
+VAULT_CLAUDE_MD_EOF
+        # Inject today's date in-place (literal heredoc didn't expand it)
+        sed -i.bak "s/__VAULT_TODAY__/$VAULT_TODAY/" "$VAULT_PATH_FINAL/CLAUDE.md" && rm -f "$VAULT_PATH_FINAL/CLAUDE.md.bak"
+
+        DAILY="$VAULT_PATH_FINAL/_daily/$VAULT_TODAY.md"
+        [[ ! -f "$DAILY" ]] && printf '# %s\n\n## Today'"'"'s intent\n\n## Notes\n\n## Sessions\n\n## Tomorrow\n' "$VAULT_TODAY" > "$DAILY"
     fi
 fi
 
@@ -807,6 +971,22 @@ echo "${T_HOOK_LABEL}${ANSWERS[enable_stop_hook]:-false}"
 [[ -n "$BACKUP_PATH" ]] && echo "${T_BACKUP_LABEL}${BACKUP_PATH}"
 GUIDE="$REPO_ROOT/guide/index.html"
 echo "${T_GUIDE_LABEL}${GUIDE}"
+
+# Obsidian hint — only when a vault was actually scaffolded
+if [[ -n "$VAULT_PATH_FINAL" ]]; then
+    echo
+    echo "$T_VAULT_HINT_TITLE"
+    echo "    $VAULT_PATH_FINAL"
+    echo
+    echo "$T_VAULT_HINT_L1"
+    echo "$T_VAULT_HINT_L2"
+    echo "$T_VAULT_HINT_L3"
+    echo "$T_VAULT_HINT_L4"
+    echo "$T_VAULT_HINT_L5"
+    echo "$T_VAULT_HINT_L6"
+    echo
+    echo "$T_VAULT_HINT_L7"
+fi
 
 if [[ $DRY_RUN -eq 0 && -f "$GUIDE" ]]; then
     open_it=$(prompt_bool "$T_OPEN_BROWSER_Q" "true")

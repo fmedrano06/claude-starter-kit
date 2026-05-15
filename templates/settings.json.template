@@ -1,5 +1,5 @@
 {
-  "_comment": "claude-starter-kit v0.4.0 settings template. The installer rewrites the Stop hook command per OS and applies model/permission/status-line/API-key overrides post-merge based on wizard answers.",
+  "_comment": "claude-starter-kit v0.4.1 settings template. The installer rewrites the Stop hook command per OS and applies model/permission/status-line/API-key overrides post-merge based on wizard answers.",
 
   "skillListingBudgetFraction": 0.03,
   "effortLevel": "high",
@@ -11,7 +11,7 @@
   "skipDangerousModePermissionPrompt": true,
 
   "enabledPlugins": {
-    "superpowers@claude-plugins-official": true,
+    "superpowers@superpowers-marketplace": true,
     "cli-anything@cli-anything": true,
     "andrej-karpathy-skills@karpathy-skills": true,
     "agent-skills@addy-agent-skills": true,
@@ -19,7 +19,10 @@
     "playground@claude-plugins-official": true,
     "code-simplifier@claude-plugins-official": true,
     "feature-dev@claude-plugins-official": true,
-    "plugin-dev@claude-plugins-official": true
+    "plugin-dev@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true
   },
 
   "extraKnownMarketplaces": {
@@ -81,6 +84,11 @@
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
       }
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
     }
   },
 
