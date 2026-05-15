@@ -39,7 +39,7 @@ if [[ ! -f "$WIZARD_JSON" ]]; then
 fi
 
 CLAUDE_HOME="${HOME}/.claude"
-MARKER='<!-- claude-starter-kit v0.4.2 -->'
+MARKER='<!-- claude-starter-kit v0.5.0 -->'
 
 # ---------------------------------------------------------------------------
 # Dependencies

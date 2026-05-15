@@ -37,7 +37,7 @@ if (-not (Test-Path -LiteralPath $WizardJsonPath)) {
 }
 
 $ClaudeHome = Join-Path $env:USERPROFILE '.claude'
-$Marker     = '<!-- claude-starter-kit v0.4.2 -->'
+$Marker     = '<!-- claude-starter-kit v0.5.0 -->'
 
 Write-Host ''
 Write-Host '== Claude Starter Kit installer ==' -ForegroundColor Cyan

@@ -774,7 +774,7 @@
         <span class="sep">·</span>
         Field guide
         <span class="sep">·</span>
-        v0.4.2
+        v0.5.0
       </span>
       <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle color theme" aria-pressed="false">
         <span class="t-dark">Light</span>
@@ -795,10 +795,11 @@
       <ol id="toc-list">
         <li><a href="#hero"><span class="roman">i</span><span>Welcome</span></a></li>
         <li><a href="#installed"><span class="roman">ii</span><span>What got installed</span></a></li>
-        <li><a href="#workflow"><span class="roman">iii</span><span>A day with Claude</span></a></li>
-        <li><a href="#customize"><span class="roman">iv</span><span>Make it yours</span></a></li>
-        <li><a href="#trouble"><span class="roman">v</span><span>Troubleshooting</span></a></li>
-        <li><a href="#resources"><span class="roman">vi</span><span>Resources</span></a></li>
+        <li><a href="#vault"><span class="roman">iii</span><span>The vault</span></a></li>
+        <li><a href="#workflow"><span class="roman">iv</span><span>A day with Claude</span></a></li>
+        <li><a href="#customize"><span class="roman">v</span><span>Make it yours</span></a></li>
+        <li><a href="#trouble"><span class="roman">vi</span><span>Troubleshooting</span></a></li>
+        <li><a href="#resources"><span class="roman">vii</span><span>Resources</span></a></li>
       </ol>
     </aside>
 
@@ -881,9 +882,10 @@
         </p>
         <h2 id="installed-h">What just got installed.</h2>
         <p class="lede">
-          The kit is intentionally small. Four pieces, each readable in
-          under five minutes. Open the files yourself — they are plain
-          Markdown and JSON, sitting in <code>~/.claude/</code>.
+          The kit is intentionally small. Four pieces in
+          <code>~/.claude/</code> — plus a fifth on your desktop if you
+          said yes to the vault. Each readable in under five minutes.
+          Open the files yourself; they are plain Markdown and JSON.
         </p>
 
         <div class="body">
@@ -952,17 +954,29 @@
             <aside class="piece-aside">
               <span class="label">File · 03</span>
               <span class="file">~/.claude/settings.json</span>
-              Plugins declared.<br>
-              Marketplaces registered.<br>
+              Twelve plugins.<br>
+              Two marketplaces.<br>
               MCPs opt-in.
             </aside>
             <div>
               <h3>Plugins &amp; MCPs declared</h3>
               <p>
-                The merged settings file enables nine plugins and any MCP
-                servers you opted into. Marketplaces are registered so
-                <code>/plugin install</code> resolves without manual setup
-                on a fresh machine.
+                The merged settings file enables <em>twelve</em> plugins —
+                claude-mem, claude-code-guide, feature-dev, plugin-dev,
+                superpowers, skill-creator, code-review, typescript-lsp,
+                and four more — sourced from
+                <code>claude-plugins-official</code> and
+                <code>superpowers-marketplace</code>. Both marketplaces
+                are registered so <code>/plugin install</code> resolves
+                cleanly on a fresh machine.
+              </p>
+              <p>
+                MCP servers you opted into wire up next to them:
+                <code>sequential-thinking</code> and
+                <code>playwright</code> (no key needed),
+                <code>context7</code> (free API key from context7.com),
+                <code>github</code> (a personal access token with
+                <code>repo</code> scope).
               </p>
               <details>
                 <summary>Where to look</summary>
@@ -1002,6 +1016,40 @@
               </details>
             </div>
           </article>
+
+          <article class="piece">
+            <aside class="piece-aside">
+              <span class="label">File · 05 · optional</span>
+              <span class="file">&lt;your-vault&gt;/CLAUDE.md</span>
+              The vault contract.<br>
+              Obsidian-native.<br>
+              Skip if you said no.
+            </aside>
+            <div>
+              <h3>The vault — Claude's second memory</h3>
+              <p>
+                If you said yes during install, a knowledge vault was
+                scaffolded at the location you chose (default: Desktop ·
+                <code>brain/</code>). Inside, a generated
+                <code>CLAUDE.md</code> tells Claude exactly how to read
+                from it, write back to it, and avoid duplicating notes.
+                Open the folder in <em>Obsidian</em> and the same files
+                become a graph you can browse.
+              </p>
+              <details>
+                <summary>What's inside</summary>
+                <div>
+                  <ul>
+                    <li><code>raw/</code>, <code>wiki/</code>, <code>outputs/</code> — the Karpathy three-folder layout.</li>
+                    <li><code>_daily/YYYY-MM-DD.md</code> — chronological session log Claude appends to.</li>
+                    <li><code>_session-handoffs/</code> — end-of-session summaries for the next agent.</li>
+                    <li><code>CLAUDE.md</code> — the contract that prevents looping and silent duplication.</li>
+                  </ul>
+                  <p>See chapter <span class="roman">iii</span> for how the five Karpathy steps fit together.</p>
+                </div>
+              </details>
+            </div>
+          </article>
         </div>
 
         <div class="marginalia">
@@ -1014,10 +1062,98 @@
       </section>
 
 
+      <!-- VAULT ------------------------------------------------------- -->
+      <section class="chapter" id="vault" aria-labelledby="vault-h">
+        <p class="chapter-tag">
+          <span class="roman">iii.</span>
+          <span class="dash" aria-hidden="true"></span>
+          The Second Memory
+        </p>
+        <h2 id="vault-h">The vault — five steps to a working brain.</h2>
+        <p class="lede">
+          A vault is a folder Claude reads at the start of every session
+          and writes back to during and after. Five steps turn it from a
+          folder of notes into a <em>compounding memory</em>. None of
+          them are optional — skip one and the loop breaks.
+        </p>
+
+        <div class="body">
+          <h3><span class="roman">1.</span> Install Obsidian.</h3>
+          <p>
+            Download <a href="https://obsidian.md" rel="noopener">obsidian.md</a> — free for personal use,
+            thousands of community plugins, no account required. Obsidian
+            opens any folder of Markdown as a graph. Your vault is just
+            Markdown; nothing in it is proprietary.
+          </p>
+
+          <h3><span class="roman">2.</span> Designate your vault.</h3>
+          <p>
+            Pick a folder. Name it <em>brain</em>. The installer asked
+            you for both during setup; the default landed on your
+            Desktop. If you said no then and want to change your mind,
+            re-run the installer — your existing CLAUDE.md is backed up
+            first.
+          </p>
+
+          <h3><span class="roman">3.</span> Open Claude Code in the vault.</h3>
+          <p>
+            Open a terminal inside the vault folder and start Claude.
+            The generated <code>CLAUDE.md</code> at the vault root is
+            the <em>contract</em> — it tells Claude to use Obsidian
+            conventions, search before writing new notes, and append
+            session summaries to the daily.
+          </p>
+          <div class="code-block" data-lang="shell">
+            <div class="code-head"><span class="code-lang">terminal</span>
+              <button class="copy-btn" type="button" aria-label="Copy code">Copy</button>
+            </div>
+<pre><code>cd ~/Desktop/brain
+claude</code></pre>
+          </div>
+
+          <h3><span class="roman">4.</span> Karpathy's three-folder structure.</h3>
+          <p>
+            The same three folders, every time:
+          </p>
+          <ul>
+            <li><code>raw/</code> — the dumping ground. Quick captures, paste-ins, transcripts. No quality bar.</li>
+            <li><code>wiki/</code> — codified, atomic articles. One idea per file. Linked with <code>[[double-brackets]]</code>.</li>
+            <li><code>outputs/</code> — finished artifacts. Decks, reports, code, posts ready to ship.</li>
+          </ul>
+          <p>
+            Utility folders sit alongside: <code>_daily/</code>,
+            <code>_session-handoffs/</code>, <code>projects/</code>.
+            They are infrastructure for the three-folder loop, not new
+            categories.
+          </p>
+
+          <h3><span class="roman">5.</span> Let Claude write back.</h3>
+          <p>
+            This is what makes the vault a second memory instead of a
+            folder you forget about. At the end of every session,
+            Claude appends a <em>Session — HH:MM</em> block to today's
+            daily note: what was done, links to wiki notes touched, the
+            next open question. Every conversation compounds.
+          </p>
+
+          <div class="marginalia">
+            <span class="marg-label">Marginalia · Recommended plugins</span>
+            <p>
+              Two community plugins make the loop friction-free:
+              <strong>Templater</strong> (snippets for daily notes) and
+              <strong>Dataview</strong> (SQL-style queries across
+              <code>wiki/</code>). Install both from
+              Settings → Community plugins. Everything else is taste.
+            </p>
+          </div>
+        </div>
+      </section>
+
+
       <!-- WORKFLOW ---------------------------------------------------- -->
       <section class="chapter" id="workflow" aria-labelledby="workflow-h">
         <p class="chapter-tag">
-          <span class="roman">iii.</span>
+          <span class="roman">iv.</span>
           <span class="dash" aria-hidden="true"></span>
           The Centerpiece
         </p>
@@ -1271,7 +1407,7 @@ last quarter."</code></pre>
       <!-- CUSTOMIZE --------------------------------------------------- -->
       <section class="chapter" id="customize" aria-labelledby="customize-h">
         <p class="chapter-tag">
-          <span class="roman">iv.</span>
+          <span class="roman">v.</span>
           <span class="dash" aria-hidden="true"></span>
           Make It Yours
         </p>
@@ -1342,6 +1478,18 @@ description: When you say "deploy to staging" or
             <code>templates/</code> as a starting point.
           </p>
 
+          <h3>Tune the status line</h3>
+          <p>
+            The wizard wrote your choice (<code>minimal</code> ·
+            <code>balanced</code> · <code>verbose</code>) as the first
+            argument of <code>statusline-command.sh</code> in
+            <code>settings.json</code>. Change it any time by editing
+            the <code>statusLine.command</code> string, or rewrite
+            <code>~/.claude/statusline-command.sh</code> to render
+            whatever you want — it reads the same JSON Claude Code feeds
+            it on stdin.
+          </p>
+
           <div class="marginalia">
             <span class="marg-label">Marginalia · Precedence</span>
             <p>If the project file contradicts the global, the project wins
@@ -1355,7 +1503,7 @@ description: When you say "deploy to staging" or
       <!-- TROUBLESHOOT ------------------------------------------------ -->
       <section class="chapter" id="trouble" aria-labelledby="trouble-h">
         <p class="chapter-tag">
-          <span class="roman">v.</span>
+          <span class="roman">vi.</span>
           <span class="dash" aria-hidden="true"></span>
           Errata
         </p>
@@ -1457,7 +1605,7 @@ Copy-Item -Recurse "$env:USERPROFILE\.claude\.backup-&lt;timestamp&gt;\*" "$env:
       <!-- RESOURCES --------------------------------------------------- -->
       <section class="chapter" id="resources" aria-labelledby="resources-h">
         <p class="chapter-tag">
-          <span class="roman">vi.</span>
+          <span class="roman">vii.</span>
           <span class="dash" aria-hidden="true"></span>
           Further Reading
         </p>
@@ -1520,7 +1668,7 @@ Copy-Item -Recurse "$env:USERPROFILE\.claude\.backup-&lt;timestamp&gt;\*" "$env:
       <footer class="colofon-end">
         <p class="end-rule" aria-hidden="true">· · · · ·</p>
         <div class="row">
-          <span>Claude Starter Kit · v0.4.2 · Field guide</span>
+          <span>Claude Starter Kit · v0.5.0 · Field guide</span>
           <span>Built single-file · Loads offline · <a href="javascript:window.print()">Print this page</a></span>
         </div>
       </footer>

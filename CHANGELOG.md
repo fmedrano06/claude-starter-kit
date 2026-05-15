@@ -4,6 +4,52 @@ All notable changes to this project are documented here. The format is
 based on [Keep a Changelog](https://keepachangelog.com/), and this
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] — 2026-05-15
+
+The "documentation catches up" release. The field guide now describes
+what the kit actually installs in v0.4.x — the Obsidian-native vault is
+a first-class citizen with its own chapter, and the inventory chapter
+lists the real plugins/MCPs instead of the v0.3.0 numbers.
+
+### Added — chapter "iii. The vault"
+
+- New chapter in `guide/index.html` dedicated to the Karpathy
+  five-step vault flow: install Obsidian, designate the folder, open
+  Claude inside it, the `raw/`/`wiki/`/`outputs/` three-folder
+  structure, and the "let Claude write back" closing loop.
+- Marginalia recommends Templater + Dataview as the two community
+  plugins that make the loop friction-free.
+
+### Changed — chapter "ii. What got installed"
+
+- "Four pieces" → "Four pieces plus a fifth (the vault) when you said
+  yes during install."
+- Plugins piece updated: "nine plugins" → "twelve plugins", lists
+  both `claude-plugins-official` and `superpowers-marketplace`,
+  mentions `playwright` MCP alongside `sequential-thinking`,
+  `context7`, `github`.
+- New piece 5 introduces the vault `CLAUDE.md` contract and
+  forward-links to chapter iii.
+
+### Changed — chapter "v. Make it yours"
+
+- New "Tune the status line" sub-section: explains that the wizard
+  wrote `minimal`/`balanced`/`verbose` as `$1` to
+  `statusline-command.sh` in `settings.json`, and that the script can
+  be rewritten freely.
+
+### Other
+
+- Roman numerals and ToC renumbered: workflow `iii`→`iv`, customize
+  `iv`→`v`, trouble `v`→`vi`, resources `vi`→`vii`.
+- HTML audit gate (`audit_html.py`) passes: 7 ToC anchors resolve,
+  11 copy buttons clean, 0 console errors, no mobile overflow,
+  theme toggle persists.
+- Version markers bumped v0.4.2 → v0.5.0 across the same surface as
+  prior bumps. Why minor not patch: the guide is no longer a passive
+  fixed-string update — it describes a meaningfully different
+  product than v0.3.0 did.
+
 ## [0.4.2] — 2026-05-15
 
 The "statusline honors its contract" release. The status-line script
@@ -264,6 +310,7 @@ Initial public release.
   extended documentation.
 - `README.md`, `LICENSE` (MIT), `.gitignore`.
 
+[0.5.0]: https://github.com/fmedrano06/claude-starter-kit/releases/tag/v0.5.0
 [0.4.2]: https://github.com/fmedrano06/claude-starter-kit/releases/tag/v0.4.2
 [0.4.1]: https://github.com/fmedrano06/claude-starter-kit/releases/tag/v0.4.1
 [0.4.0]: https://github.com/fmedrano06/claude-starter-kit/releases/tag/v0.4.0
